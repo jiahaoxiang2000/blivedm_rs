@@ -1,5 +1,5 @@
 [package]
-name = "wsserver"
+name = "wssblivedm"
 version = "0.1.0"
 edition = "2021"
 
@@ -27,7 +27,7 @@ actix-utils="3.0.1"
 actix-tls="3.0.3"
 
 openssl = "0.10.29"
- 
+brotli = "3.3.4"
 
 
 [dependencies.tungstenite]
