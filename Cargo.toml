@@ -27,7 +27,13 @@ actix-utils="3.0.1"
 actix-tls="3.0.3"
 
 openssl = "0.10.29"
-brotli = "3.3.4"
+ 
+alloc-stdlib = "0.2.2"
+huffman="0.0.3"
+alloc-no-stdlib = "2.0.3"
+brotlic = "0.8.1"
+
+native-tls="0.2.0"
 
 
 [dependencies.tungstenite]

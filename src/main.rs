@@ -1,19 +1,29 @@
-use brotli::BrotliDecompress;
 use futures_util::Stream;
+use std::io::{Error,Result};
 use serde_json::Value;
-use std::error::Error;
+
 use std::io;
-use std::io::Write;
-use std::sync::Arc;
-use std::thread;
+
 use std::time::{Duration, Instant};
-use tokio::net::TcpStream;
-use tokio::runtime::Builder;
-use tokio::runtime::Runtime;
+ 
+
+use alloc_no_stdlib::define_allocator_memory_pool;
+use alloc_stdlib::{heap_alloc::HeapAlloc, std_alloc::StandardAlloc, HeapPrealloc};
+
+use brotlic::{CompressorWriter, DecompressorReader};
+use huffman::Tree;
+use std::fs::File;
+use std::io::{BufReader, Read,Write};
 use tokio::{task, time};
 use tungstenite::stream::*;
-use tungstenite::{connect, Message, WebSocket};
+use tungstenite::{connect, Message, WebSocket,client};
 use url::Url;
+use native_tls::TlsConnector;
+ 
+use std::net::TcpStream;
+
+
+
 
 enum Operation {
     HANDSHAKE,
@@ -43,11 +53,6 @@ enum Operation {
 //     opr: Operation,
 //     value: i32
 // }
-
-async fn sleep(n: u64) -> u64 {
-    time::sleep(Duration::from_secs(n)).await;
-    n
-}
 
 fn make_packet(body: &str, ops: Operation) -> Vec<u8> {
     let json: Value = serde_json::from_str(body).unwrap();
@@ -128,47 +133,60 @@ fn get_msg_header(v_s: &[u8]) -> MSG_HEAD {
     }
 }
 
-fn parse_business_message(head: MSG_HEAD, body: &[u8]) {
-    if head.ver == 3 {
-        print!("brotli压缩");
-    } else if head.ver == 0 {
-        let s = String::from_utf8(body.to_vec()).unwrap();
-        print!("未设置压缩：{}", s);
-    } else {
-        print!("未知压缩格式")
-    }
-}
-
-fn decompress(body: &[u8]) {
-    let stdin = &mut io::stdin();
-    let mut reader = brotli::Decompressor::new(
-        stdin, 4096, // buffer size
-    );
-    let mut buf = [0u8; 4096];
-    loop {
-        match reader.into_inner (&mut buf[..]) {
-            Err(e) => {
-                if let io::ErrorKind::Interrupted = e.kind() {
-                    continue;
-                }
-                panic!("{}", e);
-            }
-            Ok(size) => {
-                if size == 0 {
-                    break;
-                }
-                match io::stdout().write_all(&buf[..size]) {
-                    Err(e) => panic!("{}", e),
-                    Ok(_) => {}
-                }
-            }
+fn handle(json:Value){
+    let category = json["cmd"].as_str().unwrap();
+    match category {
+        "DANMU_MSG" =>{
+            print!("{}发送了弹幕:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
+        },
+        "SEND_GIFT" =>{
+            print!("{}送出了礼物:{}",json["data"]["uname"].to_string(),json["data"]["giftName"].to_string())
+        },
+        _ =>{
         }
+
+        
     }
+
+
 }
 
-fn parse_ws_message(v: Vec<u8>) -> () {
+
+
+
+fn parse_business_message(head: MSG_HEAD, body: &[u8]) {
+    if head.operation == 5{
+        if head.ver == 3 {
+            let res = decompress(body).unwrap();
+            parse_ws_message(res);
+        } else if head.ver == 0 {
+            let s = String::from_utf8(body.to_vec()).unwrap();
+            let res_json:Value = serde_json::from_str(s.as_str()).unwrap();
+            handle(res_json);
+            
+        } else {
+            print!("未知压缩格式")
+        }
+    
+    }
+    
+}
+
+fn decompress(body: &[u8])->Result<Vec<u8>> {
+    //brotli解压缩byte数组
+    let mut decompressed_reader = DecompressorReader::new(body);
+    let mut decoded_input = Vec::new();
+
+    let size = decompressed_reader.read_to_end(&mut decoded_input)?;
+     Ok(decoded_input)
+
+     
+}
+
+fn parse_ws_message(v: Vec<u8> )  {
+    // let total_len = v.len();
     let mut offset = 0;
-    let header = &v[offset..16];
+    let header = &v[0..16];
     let mut head_1 = get_msg_header(header);
 
     if head_1.operation == 5 || head_1.operation == 8 {
@@ -177,12 +195,13 @@ fn parse_ws_message(v: Vec<u8>) -> () {
             let body: &[u8] = &v[offset + 16..offset + (head_1.pack_len as usize)];
             // let s = String::from_utf8(body.to_vec()).unwrap();
             parse_business_message(head_1, body);
-            offset += (head_1.pack_len as usize);
+            offset += head_1.pack_len as usize;
             if offset >= v.len() {
                 break;
             }
-            let temp_head = &v[offset..16];
-            head_1 = get_msg_header(temp_head);
+             
+            let temp_head = &v[offset..(offset+16)];
+            head_1 = get_msg_header(temp_head); 
         }
     } else if head_1.operation == 3 {
         print!(
@@ -201,10 +220,11 @@ fn analyze_msg(msg: Message) {
     match msg {
         Message::Text(s) => {
             let res: &str = &s[1..s.len() - 1];
-            print!("Text {:?}", res);
+            // print!("Text {:?}", res);
         }
         Message::Binary(v) => {
             // print!("Binary {:?}", v);
+            
             parse_ws_message(v);
         }
         Message::Ping(v) => {
@@ -226,11 +246,18 @@ fn analyze_msg(msg: Message) {
 }
 fn main() {
     env_logger::init();
+    print!("开始连接");
+    // let (mut socket, response) =
+    //     connect("ws://hw-bj-live-comet-06.chat.bilibili.com:2244/sub").expect("Can't connect");
 
-    let (mut socket, response) =
-        connect("ws://hw-gz-live-comet-01.chat.bilibili.com:2244/sub").expect("Can't connect");
-
-    let auth: &str = "{\"uid\":0,\"roomid\":813364,\"protover\":3,\"plateform\":\"web\",\"type\":2,\"key\":\"CiYBJShG-tl2p-TnJglJ4zWoTgD_u43hISt248L5F5jbwCz5dVhz9oTqk9LZjdY1ouIA8ZWw4wqyMKOaqIrUaUOtFugSZleLZaiB56cnyjAjmEpnsZq7BTuBpLedToKHVQVj07uIIyjJ-ysTamLf\"}";
+    let connector = TlsConnector::new().unwrap();
+    let stream = TcpStream::connect("hw-gz-live-comet-05.chat.bilibili.com:443").unwrap() ;
+    let mut stream = connector.connect("hw-gz-live-comet-05.chat.bilibili.com", stream).unwrap();       
+    let (mut socket, response) =client(Url::parse("wss://hw-gz-live-comet-05.chat.bilibili.com:443/sub").unwrap(),stream).expect("Can't connect");
+    
+    
+    
+    let auth: &str = "{\"uid\":0,\"roomid\":5050,\"protover\":3,\"plateform\":\"web\",\"type\":2,\"key\":\"\"}";
 
     // let h_o = Operation_str{
     //     opr:Operation::HEARTBEAT,
@@ -277,7 +304,7 @@ fn main() {
         print!("循环中 {:?} \r\n", now);
         if socket.can_read() {
             let msg = socket.read_message().expect("Error reading message");
-            println!("Received: {}", msg);
+            // println!("Received: {}", msg);
             //实现格式化返回数据
             // todo!();
             analyze_msg(msg);
