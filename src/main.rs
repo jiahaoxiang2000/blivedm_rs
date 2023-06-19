@@ -1,29 +1,23 @@
-use futures_util::Stream;
 use std::io::{Error,Result};
 use serde_json::Value;
 
 use std::io;
 
 use std::time::{Duration, Instant};
- 
-
-use alloc_no_stdlib::define_allocator_memory_pool;
-use alloc_stdlib::{heap_alloc::HeapAlloc, std_alloc::StandardAlloc, HeapPrealloc};
-
 use brotlic::{CompressorWriter, DecompressorReader};
-use huffman::Tree;
-use std::fs::File;
+ 
+ 
 use std::io::{BufReader, Read,Write};
 use tokio::{task, time};
 use tungstenite::stream::*;
 use tungstenite::{connect, Message, WebSocket,client};
 use url::Url;
 use native_tls::TlsConnector;
- 
+use std::collections::HashMap;
 use std::net::TcpStream;
-
-
-
+use std::thread;
+use log::{debug, error, log_enabled, info, Level};
+ 
 
 enum Operation {
     HANDSHAKE,
@@ -53,6 +47,9 @@ enum Operation {
 //     opr: Operation,
 //     value: i32
 // }
+
+ 
+
 
 fn make_packet(body: &str, ops: Operation) -> Vec<u8> {
     let json: Value = serde_json::from_str(body).unwrap();
@@ -137,10 +134,13 @@ fn handle(json:Value){
     let category = json["cmd"].as_str().unwrap();
     match category {
         "DANMU_MSG" =>{
-            print!("{}发送了弹幕:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
+            println!("{}:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
+
+            // debug!("{}发送了弹幕:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
         },
         "SEND_GIFT" =>{
-            print!("{}送出了礼物:{}",json["data"]["uname"].to_string(),json["data"]["giftName"].to_string())
+            println!("{}送出了礼物:{}",json["data"]["uname"].to_string(),json["data"]["giftName"].to_string());
+            // debug!("{}送出了礼物:{}",json["data"]["uname"].to_string(),json["data"]["giftName"].to_string());
         },
         _ =>{
         }
@@ -165,7 +165,7 @@ fn parse_business_message(head: MSG_HEAD, body: &[u8]) {
             handle(res_json);
             
         } else {
-            print!("未知压缩格式")
+            println!("未知压缩格式")
         }
     
     }
@@ -204,12 +204,12 @@ fn parse_ws_message(v: Vec<u8> )  {
             head_1 = get_msg_header(temp_head); 
         }
     } else if head_1.operation == 3 {
-        print!(
+        println!(
             "心跳重发请求, unknown message operation={:?}, header={:?}}}",
             head_1.operation, head_1
         )
     } else {
-        print!(
+        println!(
             "未知消息, unknown message operation={:?}, header={:?}}}",
             head_1.operation, head_1
         )
@@ -228,37 +228,83 @@ fn analyze_msg(msg: Message) {
             parse_ws_message(v);
         }
         Message::Ping(v) => {
-            print!("Ping {:?}", v);
+            println!("Ping {:?}", v);
         }
         Message::Pong(v) => {
-            print!("Pong {:?}", v);
+            println!("Pong {:?}", v);
         }
         Message::Close(v) => {
-            print!("Close {:?}", v);
+            println!("Close {:?}", v);
         }
         Message::Frame(v) => {
-            print!("Frame {:?}", v);
+            println!("Frame {:?}", v);
         }
         _ => {
-            print!("类型出错");
+            println!("类型出错");
         }
     }
 }
-fn main() {
+ 
+ 
+fn get(url:&str)->core::result::Result<String,Box<dyn std::error::Error>>{
+    let mut res = reqwest::blocking::get(url)?;
+    let mut body = String::new();
+    res.read_to_string(&mut body);
+    Ok(body)
+}
+
+ fn main()  {
     env_logger::init();
-    print!("开始连接");
+    println!("开始连接");
     // let (mut socket, response) =
     //     connect("ws://hw-bj-live-comet-06.chat.bilibili.com:2244/sub").expect("Can't connect");
 
-    let connector = TlsConnector::new().unwrap();
-    let stream = TcpStream::connect("hw-gz-live-comet-05.chat.bilibili.com:443").unwrap() ;
-    let mut stream = connector.connect("hw-gz-live-comet-05.chat.bilibili.com", stream).unwrap();       
-    let (mut socket, response) =client(Url::parse("wss://hw-gz-live-comet-05.chat.bilibili.com:443/sub").unwrap(),stream).expect("Can't connect");
-    
-    
-    
-    let auth: &str = "{\"uid\":0,\"roomid\":5050,\"protover\":3,\"plateform\":\"web\",\"type\":2,\"key\":\"\"}";
 
+    let room_init_url = format!("https://api.live.bilibili.com/room/v1/Room/room_init?id={}","813364");
+    // let ini_res =get(room_init_url.as_str());
+    println!("{}",room_init_url);
+    
+    let resp = get(room_init_url.as_str());
+
+    let room_info:Value  = serde_json::from_str(resp.unwrap().as_str()).unwrap();
+    println!("直播间真实id {:#?}", room_info["data"]["room_id"]);
+    let live_info_url: String = format!("https://api.live.bilibili.com/room/v1/Danmu/getConf?room_id={}&platform=pc&player=web",room_info["data"]["room_id"]);
+
+
+    let resp_1 = get(live_info_url.as_str());
+
+    let live_info:Value=  serde_json::from_str(resp_1.unwrap().as_str()).unwrap();
+    
+    let host = live_info["data"]["host_server_list"][0]["host"].as_str();
+    let wss_port = live_info["data"]["host_server_list"][0]["wss_port"].to_string();
+    let token = live_info["data"]["token"].as_str();
+
+    // let   host:core::result::Result<&str, Box<dyn std::error::Error>> = Ok("broadcastlv.chat.bilibili.com");
+    let mut url1 = host.unwrap().to_string();
+    url1.push_str(":");
+    url1.push_str(wss_port.as_str());
+   
+    let mut url2 = String::from("wss://");
+    url2.push_str(host.unwrap() );
+    url2.push_str(":");
+    url2.push_str(wss_port.as_str());
+    url2.push_str("/sub");
+
+    println!("地址 {}",url1);
+
+    let connector = TlsConnector::new().unwrap();
+    let stream = TcpStream::connect(url1).unwrap() ;
+    let mut stream = connector.connect(host.unwrap(), stream).unwrap();       
+    let (mut socket, response) =client(Url::parse(&url2).unwrap(),stream).expect("Can't connect");
+    
+    
+    let mut  temp = String::from("{\"uid\":0,\"roomid\":"); 
+    temp.push_str(room_info["data"]["room_id"].to_string().as_str());
+    temp.push_str(",\"protover\":3,\"plateform\":\"web\",\"type\":2,\"key\":\"");
+    temp.push_str(token.unwrap());
+    temp.push_str("\"}");
+    let auth: &str = temp.as_str();
+    
     // let h_o = Operation_str{
     //     opr:Operation::HEARTBEAT,
     //     value:2
@@ -272,7 +318,7 @@ fn main() {
     // let a_o = Operation::HEARTBEAT(7);
     let res = make_packet(auth, Operation::AUTH);
 
-    print!("|/-\\|{:?}", res);
+    println!("|/-\\|{:?}", res);
 
     println!("Connected to the server");
     println!("Response HTTP code: {}", response.status());
@@ -298,10 +344,10 @@ fn main() {
     // let arc_socket = Arc::new(socket );
     // let copy_socket = socket.clone();
 
-    print!("开始接收");
+    println!("开始接收");
     let mut now = Instant::now();
     loop {
-        print!("循环中 {:?} \r\n", now);
+         
         if socket.can_read() {
             let msg = socket.read_message().expect("Error reading message");
             // println!("Received: {}", msg);
@@ -309,15 +355,16 @@ fn main() {
             // todo!();
             analyze_msg(msg);
         }
-        if Instant::now() > now + Duration::from_secs(30) {
+        if Instant::now() > now + Duration::from_secs(20) {
             now = Instant::now();
             if socket.can_write() {
-                print!("发送心跳");
+                println!("发送心跳");
                 socket
                     .write_message(Message::Binary(make_packet("{}", Operation::HEARTBEAT)))
                     .unwrap();
             }
         }
+        // thread::sleep(Duration::from_secs(1));
     }
 
     // socket.close(None);
