@@ -1,12 +1,12 @@
 
 use serde_json::Value;
-use tungstenite::{ Message,client};
+use tungstenite::{ Message,client,protocol::*};
 use std::time::{Duration, Instant};
+use native_tls::TlsStream;
+use std::net::TcpStream;
 
- 
 use url::Url;
 use native_tls::TlsConnector;
-use std::net::TcpStream;
 
 use reqwest::StatusCode;
 
@@ -14,11 +14,23 @@ use serde_json;
 use std::collections::HashMap;
 use reqwest::header::{HeaderMap, HeaderValue, COOKIE,USER_AGENT};
 
-
-
-mod web;
+use http::Response;
+use bytes::Bytes;
+use http_body_util::Empty;
+use hyper_tls::HttpsConnector;
+use hyper_util::{client::legacy::Client, rt::TokioExecutor};
+pub mod web;
 use web::*;
 
+ 
+async fn test() -> Result<(), Box<dyn std::error::Error>>{
+    let https = HttpsConnector::new();
+    let client = Client::builder(TokioExecutor::new()).build::<_, Empty<Bytes>>(https);
+
+    let res = client.get("https://hyper.rs".parse()?).await?;
+    assert_eq!(res.status(), 200);
+    Ok(())
+}
 
 
  
@@ -26,6 +38,7 @@ fn init_uid(headers:HeaderMap) -> (StatusCode,String) {
     // 设置请求的URL
     let client = reqwest::blocking::Client::builder().https_only(true).build().unwrap();
     let response = client.get(web::UID_INIT_URL).headers(headers).send();
+    println!("init_uid:{:?}",response);
     let mut stat:StatusCode;
     let mut body:String;
     match response{
@@ -103,7 +116,7 @@ fn init_host_server(headers:HeaderMap,room_id:u64)-> (StatusCode,String){
     (stat, body)
 }
 
-fn gen_damu_list(list:&Value)->Vec<DanmuServer>{
+pub fn gen_damu_list(list:&Value)->Vec<DanmuServer>{
       let server_list = list.as_array().unwrap();
       let mut res :Vec<DanmuServer>=Vec::new();
       if server_list.len()==0{
@@ -128,7 +141,7 @@ fn find_server(vd:Vec<DanmuServer>)->(String,String,String){
 }
 
 
-fn init_server(sessdata:&str,room_id:&str)->(Value,AuthMessage){
+pub fn init_server(sessdata:&str,room_id:&str)->(Value,AuthMessage){
     let mut cookies = HashMap::new();
     cookies.insert("SESSDATA".to_string(), sessdata.to_string());
     let mut auth_map = HashMap::new();
@@ -172,6 +185,26 @@ fn init_server(sessdata:&str,room_id:&str)->(Value,AuthMessage){
     (server_info.clone(),auth_msg)
 }
 
+
+pub fn connect(v:Value)->(WebSocket<TlsStream<TcpStream>>,Response<Option<Vec<u8>>>){
+    let danmu_server = gen_damu_list(&v);
+        
+    println!("danmu_server == {:?}",danmu_server);
+
+    //初始化完成，开始监听danmu
+    // let mut retry_count = 0;
+    let (host,url,ws_url,)= find_server(danmu_server);
+    println!("ws_url地址:{}",ws_url);
+    println!("host:{}",host);
+    println!("url地址:{}",url);
+
+    let connector: TlsConnector = TlsConnector::new().unwrap();
+    let stream: TcpStream = TcpStream::connect(url).unwrap() ;
+    let mut stream: native_tls::TlsStream<TcpStream> = connector.connect(host.as_str(), stream).unwrap();       
+    let (mut socket, resp) =client(Url::parse(ws_url.as_str()).unwrap(),stream).expect("Can't connect");
+    (socket,resp)
+}
+
  
 #[cfg(test)]
 mod test {
@@ -187,97 +220,17 @@ mod test {
     use std::net::{Ipv4Addr, SocketAddrV4,SocketAddr};
     use std::sync::{Arc, Mutex}; 
     use futures::channel::mpsc;
+    use tokio::*;
 
 
-
-    #[test]
-    fn it_works() {
-        // 创建一个HashMap来存储Cookie
-        let sessdata = "3b2be85e%2C1716943731%2C5b579%2Ac2CjA1nhbZeS1AyhLoHnccXYPEfYZEShmZkQEvS0zl3h2ddHDngOmoDvhxVkibLOC9_1ESVmdreUJPR2FmQ0FoVVJETDhRVjdGUEZXU210TU5ya1FQLUNWNFE0eWlnbmVDUU5UNmJVeEpJZHZGWnZYVVIwZHByWHl0YjNDMFpkelhKOGJzQVhiOWJRIIEC";
-        let (server_info,auth_msg) = init_server(sessdata, "5050");
-        let danmu_server = gen_damu_list(&server_info["host_list"]);
-        
-        println!("danmu_server == {:?}",danmu_server);
-
-        //初始化完成，开始监听danmu
-        // let mut retry_count = 0;
-        let (host,url,ws_url,)= find_server(danmu_server);
-        println!("ws_url地址:{}",ws_url);
-        println!("host:{}",host);
-        println!("url地址:{}",url);
-
-        let connector = TlsConnector::new().unwrap();
-        let stream = TcpStream::connect(url).unwrap() ;
-        let mut stream = connector.connect(host.as_str(), stream).unwrap();       
-        let (mut socket, resp) =client(Url::parse(ws_url.as_str()).unwrap(),stream).expect("Can't connect");
-        println!("连接服务:{:?}",resp);
-         
-         
-        
-        //发送授权报文
-        
-        
-        let auth_msg_str = serde_json::to_string(&auth_msg).unwrap();
-        println!("授权消息:{}",auth_msg_str);
-        let la: Message = Message::Binary(web::make_packet(auth_msg_str.as_str(), web::Operation::AUTH));
-        // print!("auth:{:?}",la);
-
-        
-
-        socket.send(la).unwrap();
-         
-        // socket.send(Message::Binary(make_packet("{}", Operation::HEARTBEAT))).unwrap();
-         
-        let shared_stream = Arc::new(Mutex::new(socket));
-        let mut heart_beats = Arc::clone(&shared_stream);
-
-        thread::spawn(move || {
-            loop {
-                match heart_beats.lock() {
-                    Ok(mut locked_stream) => {
-                        if locked_stream.can_write(){
-                            locked_stream.send(Message::Binary(make_packet("{}", Operation::HEARTBEAT)))
-                            .unwrap();
-                        }
-                            
-                    }
-                    Err(e) => {
-                        eprintln!("Error acquiring lock on stream: {}", e);
-                        break;
-                    }
-                }
-
-                thread::sleep(Duration::new(30, 0));
-            }
-        });
-
-
-        let (tx,mut rx) = mpsc::channel(64);
-        
-        let mut rec_msg = Arc::clone(&shared_stream);
-        // let tx = tx.clone();
-        loop{
-            match rec_msg.lock() {
-                Ok(mut locked_stream) => {
-                    if locked_stream.can_read(){
-                         
-                        let msg = locked_stream.read().expect("Error reading message");
-                        let res_msg_arr = web::analyze_msg(msg);
-                        for i in res_msg_arr{
-                            let tx = tx.clone();
-                            let _= tx.send(i);
-                        }
-                        
-                    }
-                }
-                Err(e) =>{
-                    eprintln!("Error acquiring lock on stream: {}", e);
-                    break;
-                }
-            }
-            
-        
-        }
+     
+    #[tokio::test]
+    async fn send_https(){
+        test().await;
     }
+
+
+
+
 }
  
