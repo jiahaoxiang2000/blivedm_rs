@@ -3,7 +3,6 @@ use serde_json::Value;
 use tungstenite::{ Message,client};
 use std::time::{Duration, Instant};
 
-use reqwest::header::HeaderMap;
  
 use url::Url;
 use native_tls::TlsConnector;
@@ -12,7 +11,8 @@ use std::net::TcpStream;
 use reqwest::StatusCode;
 
 use serde_json;
-
+use std::collections::HashMap;
+use reqwest::header::{HeaderMap, HeaderValue, COOKIE,USER_AGENT};
 
 
 
@@ -128,21 +128,65 @@ fn find_server(vd:Vec<DanmuServer>)->(String,String,String){
 }
 
 
+fn init_server(sessdata:&str,room_id:&str)->(Value,AuthMessage){
+    let mut cookies = HashMap::new();
+    cookies.insert("SESSDATA".to_string(), sessdata.to_string());
+    let mut auth_map = HashMap::new();
+    // 构建一个HeaderMap，将Cookie添加到请求头中
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        COOKIE,
+        HeaderValue::from_str(
+            &cookies
+                .iter()
+                .map(|(name, value)| format!("{}={}", name, value))
+                .collect::<Vec<_>>()
+                .join("; "),
+        ).unwrap(),
+            
+    );
+    headers.insert(USER_AGENT, HeaderValue::from_str(web::USER_AGENT).unwrap());
+        // let res = get(web::UID_INIT_URL);
+    let (_, bod1y)= init_uid(headers.clone());
+    let body1_v:Value = serde_json::from_str(bod1y.as_str()).unwrap();
+
+    println!("uid{:?}",body1_v["data"]["mid"]);
+    auth_map.insert("uid".to_string(), body1_v["data"]["mid"].as_i64().unwrap().to_string());
+    let(res_stat2,buvid) = init_buvid(headers.clone());
+    println!("2222222222222222{:?}",buvid.clone());
+    auth_map.insert("buvid".to_string(), buvid.to_string());
+    let(_,body3) = init_room(headers.clone(),room_id);
+    // println!("body3{:?}",body3);
+    let body3_v:Value = serde_json::from_str(body3.as_str()).unwrap();
+    let room_info = &body3_v["data"]["room_info"];
+    let room_id = room_info["room_id"].as_u64().unwrap();
+    println!("roomid{:?},roomowner{:?}",room_info["room_id"],room_info["uid"]);
+    auth_map.insert("room_id".to_string(), room_id.to_string());
+    let(_,body4) = init_host_server(headers.clone(),room_id);
+    let body4_res:Value = serde_json::from_str(body4.as_str()).unwrap();
+    let server_info  = &body4_res["data"];
+    let token =  &body4_res["data"]["token"].as_str().unwrap();
+    println!("token == {:?}",token);
+    auth_map.insert("token".to_string(), token.to_string());
+    let auth_msg = AuthMessage::from(&auth_map);
+    (server_info.clone(),auth_msg)
+}
+
  
 #[cfg(test)]
 mod test {
     use crate::bili_live_dm::*;
-    use std::collections::HashMap;
+    
     use futures::Sink;
-    use reqwest::header::{HeaderMap, HeaderValue, COOKIE,USER_AGENT};
-    use serde_json::Value;
+    
+    
     use std::thread;
     use std::time::Duration;
     // use websockets::{WebSocket, WebSocketWriteHalf};
     use tungstenite::{ Message,protocol::*};
     use std::net::{Ipv4Addr, SocketAddrV4,SocketAddr};
     use std::sync::{Arc, Mutex}; 
-    use futures::sync::mpsc;
+    use futures::channel::mpsc;
 
 
 
@@ -150,50 +194,13 @@ mod test {
     fn it_works() {
         // 创建一个HashMap来存储Cookie
         let sessdata = "3b2be85e%2C1716943731%2C5b579%2Ac2CjA1nhbZeS1AyhLoHnccXYPEfYZEShmZkQEvS0zl3h2ddHDngOmoDvhxVkibLOC9_1ESVmdreUJPR2FmQ0FoVVJETDhRVjdGUEZXU210TU5ya1FQLUNWNFE0eWlnbmVDUU5UNmJVeEpJZHZGWnZYVVIwZHByWHl0YjNDMFpkelhKOGJzQVhiOWJRIIEC";
-        let mut cookies = HashMap::new();
-        cookies.insert("SESSDATA".to_string(), sessdata.to_string());
-        let mut auth_map = HashMap::new();
-        // 构建一个HeaderMap，将Cookie添加到请求头中
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            COOKIE,
-            HeaderValue::from_str(
-                &cookies
-                    .iter()
-                    .map(|(name, value)| format!("{}={}", name, value))
-                    .collect::<Vec<_>>()
-                    .join("; "),
-            ).unwrap(),
-            
-        );
-        headers.insert(USER_AGENT, HeaderValue::from_str(web::USER_AGENT).unwrap());
-        // let res = get(web::UID_INIT_URL);
-        let (_, bod1y)= init_uid(headers.clone());
-        let body1_v:Value = serde_json::from_str(bod1y.as_str()).unwrap();
-
-        println!("uid{:?}",body1_v["data"]["mid"]);
-        auth_map.insert("uid".to_string(), body1_v["data"]["mid"].as_i64().unwrap().to_string());
-        let(res_stat2,buvid) = init_buvid(headers.clone());
-        println!("2222222222222222{:?}",buvid.clone());
-        auth_map.insert("buvid".to_string(), buvid.to_string());
-        let(_,body3) = init_room(headers.clone(),"5050");
-        // println!("body3{:?}",body3);
-        let body3_v:Value = serde_json::from_str(body3.as_str()).unwrap();
-        let room_info = &body3_v["data"]["room_info"];
-        let room_id = room_info["room_id"].as_u64().unwrap();
-        println!("roomid{:?},roomowner{:?}",room_info["room_id"],room_info["uid"]);
-        auth_map.insert("room_id".to_string(), room_id.to_string());
-        let(_,body4) = init_host_server(headers.clone(),room_id);
-        let body4_res:Value = serde_json::from_str(body4.as_str()).unwrap();
-        let server_info  = &body4_res["data"];
-        let token =  &body4_res["data"]["token"].as_str().unwrap();
-        auth_map.insert("token".to_string(), token.to_string());
+        let (server_info,auth_msg) = init_server(sessdata, "5050");
         let danmu_server = gen_damu_list(&server_info["host_list"]);
-        println!("token == {:?}",token);
+        
         println!("danmu_server == {:?}",danmu_server);
 
         //初始化完成，开始监听danmu
-        let mut retry_count = 0;
+        // let mut retry_count = 0;
         let (host,url,ws_url,)= find_server(danmu_server);
         println!("ws_url地址:{}",ws_url);
         println!("host:{}",host);
@@ -203,12 +210,12 @@ mod test {
         let stream = TcpStream::connect(url).unwrap() ;
         let mut stream = connector.connect(host.as_str(), stream).unwrap();       
         let (mut socket, resp) =client(Url::parse(ws_url.as_str()).unwrap(),stream).expect("Can't connect");
-        println!("resp:{:?}",resp);
+        println!("连接服务:{:?}",resp);
          
          
         
         //发送授权报文
-        let auth_msg = AuthMessage::from(&auth_map);
+        
         
         let auth_msg_str = serde_json::to_string(&auth_msg).unwrap();
         println!("授权消息:{}",auth_msg_str);
