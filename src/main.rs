@@ -13,7 +13,7 @@ fn main() {
     let sessdata = "3b2be85e%2C1716943731%2C5b579%2Ac2CjA1nhbZeS1AyhLoHnccXYPEfYZEShmZkQEvS0zl3h2ddHDngOmoDvhxVkibLOC9_1ESVmdreUJPR2FmQ0FoVVJETDhRVjdGUEZXU210TU5ya1FQLUNWNFE0eWlnbmVDUU5UNmJVeEpJZHZGWnZYVVIwZHByWHl0YjNDMFpkelhKOGJzQVhiOWJRIIEC";
     let (server_info,auth_msg) = bili_live_dm::init_server(sessdata, "813364");
     // let danmu_server = bili_live_dm::gen_damu_list(&server_info["host_list"]);
-    let (mut socket, resp) = bili_live_dm::connect(server_info["host_list"].clone());
+    let (mut socket, _resp) = bili_live_dm::connect(server_info["host_list"].clone());
      
         
     //发送授权报文 

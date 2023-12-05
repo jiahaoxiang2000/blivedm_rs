@@ -15,22 +15,11 @@ use std::collections::HashMap;
 use reqwest::header::{HeaderMap, HeaderValue, COOKIE,USER_AGENT};
 
 use http::Response;
-use bytes::Bytes;
-use http_body_util::Empty;
-use hyper_tls::HttpsConnector;
-use hyper_util::{client::legacy::Client, rt::TokioExecutor};
+
 pub mod web;
 use web::*;
 
- 
-async fn test() -> Result<(), Box<dyn std::error::Error>>{
-    let https = HttpsConnector::new();
-    let client = Client::builder(TokioExecutor::new()).build::<_, Empty<Bytes>>(https);
 
-    let res = client.get("https://hyper.rs".parse()?).await?;
-    assert_eq!(res.status(), 200);
-    Ok(())
-}
 
 
  
@@ -209,24 +198,12 @@ pub fn connect(v:Value)->(WebSocket<TlsStream<TcpStream>>,Response<Option<Vec<u8
 #[cfg(test)]
 mod test {
     use crate::bili_live_dm::*;
-    
-    use futures::Sink;
-    
-    
-    use std::thread;
-    use std::time::Duration;
-    // use websockets::{WebSocket, WebSocketWriteHalf};
-    use tungstenite::{ Message,protocol::*};
-    use std::net::{Ipv4Addr, SocketAddrV4,SocketAddr};
-    use std::sync::{Arc, Mutex}; 
-    use futures::channel::mpsc;
-    use tokio::*;
-
-
-     
-    #[tokio::test]
-    async fn send_https(){
-        test().await;
+   
+    #[test]
+    fn send_https(){
+        let ss="3b2be85e%2C1716943731%2C5b579%2Ac2CjA1nhbZeS1AyhLoHnccXYPEfYZEShmZkQEvS0zl3h2ddHDngOmoDvhxVkibLOC9_1ESVmdreUJPR2FmQ0FoVVJETDhRVjdGUEZXU210TU5ya1FQLUNWNFE0eWlnbmVDUU5UNmJVeEpJZHZGWnZYVVIwZHByWHl0YjNDMFpkelhKOGJzQVhiOWJRIIEC";
+        let room_id = "5050";
+        init_server(ss,room_id);
     }
 
 
