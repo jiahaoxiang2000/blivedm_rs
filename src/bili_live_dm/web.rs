@@ -127,14 +127,14 @@ pub fn make_packet(body: &str, ops: Operation) -> Vec<u8> {
 
 #[derive(Copy, Clone, Debug)]
 pub struct MSG_HEAD {
-    pack_len: u32,
-    raw_header_size: u16,
-    ver: u16,
-    operation: u32,
-    seq_id: u32,
+    pub pack_len: u32,
+    pub raw_header_size: u16,
+    pub ver: u16,
+    pub operation: u32,
+    pub seq_id: u32,
 }
 
-fn get_msg_header(v_s: &[u8]) -> MSG_HEAD {
+pub fn get_msg_header(v_s: &[u8]) -> MSG_HEAD {
     let mut pack_len: [u8; 4] = [0; 4];
     let mut raw_header_size: [u8; 2] = [0; 2];
     let mut ver: [u8; 2] = [0; 2];
@@ -173,21 +173,22 @@ fn get_msg_header(v_s: &[u8]) -> MSG_HEAD {
 }
 
 
-fn handle(json:Value)->String{
+pub fn handle(json:Value)->String{
     let category = json["cmd"].as_str().unwrap();
-    let mut res:String;
+    let res:String;
     match category {
         "DANMU_MSG" =>{
-            println!("{}:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
+            // println!("{}:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
             res = format!("{}发送弹幕:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
             // debug!("{}发送了弹幕:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
         },
         "SEND_GIFT" =>{
-            println!("{}送出礼物:{}",json["data"]["uname"].to_string(),json["data"]["giftName"].to_string());
+            // println!("{}送出礼物:{}",json["data"]["uname"].to_string(),json["data"]["giftName"].to_string());
             // debug!("{}送出了礼物:{}",json["data"]["uname"].to_string(),json["data"]["giftName"].to_string());
             res = format!("{}送出礼物:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
         },
         _ =>{
+            println!("未知消息:{:?}",json);
             res="未知消息".to_string();
         }
     }
@@ -204,7 +205,9 @@ fn parse_business_message(head: MSG_HEAD, body: &[u8], temp:&mut Vec<String>) {
             let s = String::from_utf8(body.to_vec()).unwrap();
             let res_json:Value = serde_json::from_str(s.as_str()).unwrap();
             let res = handle(res_json);
-            temp.push(res);
+            if res!="未知消息".to_string(){
+                temp.push(res);
+            }
         } else {
             println!("未知压缩格式")
         }
@@ -214,7 +217,7 @@ fn parse_business_message(head: MSG_HEAD, body: &[u8], temp:&mut Vec<String>) {
 }
 
 
-fn decompress(body: &[u8])->std::io::Result<Vec<u8>> {
+pub fn decompress(body: &[u8])->std::io::Result<Vec<u8>> {
     //brotli解压缩byte数组
     let mut decompressed_reader: DecompressorReader<&[u8]> = DecompressorReader::new(body);
     let mut decoded_input = Vec::new();
@@ -225,7 +228,7 @@ fn decompress(body: &[u8])->std::io::Result<Vec<u8>> {
      
 }
 
-pub fn parse_ws_message(v: & Vec<u8> , temp:&mut Vec<String>) {
+fn parse_ws_message(v: & Vec<u8> , temp:&mut Vec<String>) {
     // let total_len = v.len();
     let mut offset = 0;
     let header = &v[0..16];

@@ -13,8 +13,11 @@ use reqwest::StatusCode;
 use serde_json;
 use std::collections::HashMap;
 use reqwest::header::{HeaderMap, HeaderValue, COOKIE,USER_AGENT};
-
+use std::sync::{Arc, Mutex}; 
 use http::Response;
+use futures_channel::mpsc::Sender;
+use std::thread;
+
 
 pub mod web;
 use web::*;
@@ -194,7 +197,112 @@ pub fn connect(v:Value)->(WebSocket<TlsStream<TcpStream>>,Response<Option<Vec<u8
     (socket,resp)
 }
 
+pub struct BiliLiveClient{
+    ws:WebSocket<TlsStream<TcpStream>>,
+    auth_msg:String,
+    ss:Sender<String>,
  
+}
+
+impl BiliLiveClient{
+    pub fn new(sessdata:&str,room_id:&str,r:Sender<String>)->Self{
+        let (v,auth) = init_server(sessdata,room_id);
+        let (ws,res) = connect(v["host_list"].clone());
+        BiliLiveClient{
+            ws:ws,
+            auth_msg:serde_json::to_string(&auth).unwrap(),
+            ss:r,
+ 
+        }
+    }
+
+    pub fn send_auth(&mut self){
+        let _ = self.ws.send(Message::Binary(make_packet(self.auth_msg.as_str(), Operation::AUTH)));
+    }
+
+    pub fn send_heart_beat(&mut self){
+        if self.ws.can_write(){
+            let _ = self.ws.send(Message::Binary(make_packet("{}", Operation::HEARTBEAT)));
+        }
+        
+    }
+
+
+    pub fn parse_ws_message(&mut self ,resv: Vec<u8>){
+        let mut offset = 0;
+        let header = &resv[0..16];
+        let mut head_1 = get_msg_header(header);
+
+        if head_1.operation == 5 || head_1.operation == 8 {
+            loop {
+                // let pl = head_1.pack_len.clone();
+                let body: &[u8] = &resv[offset + 16..offset + (head_1.pack_len as usize)];
+                // let s = String::from_utf8(body.to_vec()).unwrap();
+                self.parse_business_message(head_1, body);
+                offset += head_1.pack_len as usize;
+                if offset >= resv.len() {
+                    break;
+                }
+                
+                let temp_head = &resv[offset..(offset+16)];
+                head_1 = get_msg_header(temp_head); 
+            }
+        } else if head_1.operation == 3 {
+             
+        } else {
+            println!(
+                "未知消息, unknown message operation={:?}, header={:?}}}",
+                head_1.operation, head_1
+            )
+        }
+
+    }
+
+    pub fn parse_business_message(&mut self,h:MSG_HEAD,b: &[u8]){
+        if h.operation == 5{
+            if h.ver == 3 {
+                let res: Vec<u8> = decompress(b).unwrap();
+                self.parse_ws_message(res);
+            } else if h.ver == 0 {
+                let s = String::from_utf8(b.to_vec()).unwrap();
+                let res_json:Value = serde_json::from_str(s.as_str()).unwrap();
+                let res = handle(res_json);
+                if "未知消息".to_string()==res{
+                    return;
+                }
+                let _ = self.ss.try_send(res);
+            } else {
+                println!("未知压缩格式");
+            }
+        
+        }else if  h.operation == 8{
+            self.send_heart_beat();
+        }else {
+            println!("未知消息格式{}",h.operation);
+        }
+    
+    
+    }
+
+    pub fn recive(&mut self){
+        if self.ws.can_read(){
+            let msg =  self.ws.read().expect("Error reading message");
+            let res = msg.into_data();
+            if res.len()>=16{
+                self.parse_ws_message(res);
+            }
+            
+        }
+    }
+
+
+    
+
+}
+
+
+
+
 #[cfg(test)]
 mod test {
     use crate::bili_live_dm::*;
