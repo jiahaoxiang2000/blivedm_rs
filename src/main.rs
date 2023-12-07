@@ -10,7 +10,7 @@ use bili_live_dm::{web::*, BiliLiveClient};
 use std::time::Duration;
 
 fn main() {
-    let sessdata = "3b2be85e%2C1716943731%2C5b579%2Ac2CjA1nhbZeS1AyhLoHnccXYPEfYZEShmZkQEvS0zl3h2ddHDngOmoDvhxVkibLOC9_1ESVmdreUJPR2FmQ0FoVVJETDhRVjdGUEZXU210TU5ya1FQLUNWNFE0eWlnbmVDUU5UNmJVeEpJZHZGWnZYVVIwZHByWHl0YjNDMFpkelhKOGJzQVhiOWJRIIEC";
+    let sessdata = "ddd422a8%2C1717504453%2C0d12d%2Ac2CjCUcAK8193R0ZMrA-7gm51geNutaoDeaOleGIHoiqf0bhFolCgbyxt6efeBR3tuh4MSVk9PMWpQcl9GSWF2V2dNblB0UzhHNG5GRXJvVGpjeWR2dnRzWkRaY3BaN1pFb2ZoUXUxTk9fejY3ZF9IS3RqV2NCWlpYQVRjUThjdXVqNVk0Y1VlU01RIIEC";
     // let (server_info,auth_msg) = bili_live_dm::init_server(sessdata, "813364");
     // // let danmu_server = bili_live_dm::gen_damu_list(&server_info["host_list"]);
     // let (mut socket, _resp) = bili_live_dm::connect(server_info["host_list"].clone());
@@ -26,6 +26,7 @@ fn main() {
     let (tx,mut rx) = mpsc::channel(64);
     let mut client = BiliLiveClient::new(sessdata, "813364", tx);
     client.send_auth();
+    client.send_heart_beat();
     let shared_client = Arc::new(Mutex::new(client));
     let heart_beats = Arc::clone(&shared_client);
 
@@ -40,7 +41,7 @@ fn main() {
                     break;
                 }
             }
-            thread::sleep(Duration::new(30, 0));
+            thread::sleep(Duration::new(20, 0));
         }
     });
 
@@ -61,7 +62,7 @@ fn main() {
                 }
             }
             
-        
+            thread::sleep(Duration::new(0, 10));
         }
     });
 

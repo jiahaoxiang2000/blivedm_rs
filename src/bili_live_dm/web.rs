@@ -188,7 +188,7 @@ pub fn handle(json:Value)->String{
             res = format!("{}送出礼物:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
         },
         _ =>{
-            println!("未知消息:{:?}",json);
+            // println!("未知消息:{:?}",json);
             res="未知消息".to_string();
         }
     }

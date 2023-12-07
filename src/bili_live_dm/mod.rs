@@ -221,9 +221,7 @@ impl BiliLiveClient{
     }
 
     pub fn send_heart_beat(&mut self){
-        if self.ws.can_write(){
-            let _ = self.ws.send(Message::Binary(make_packet("{}", Operation::HEARTBEAT)));
-        }
+        let _ = self.ws.send(Message::Binary(make_packet("{}", Operation::HEARTBEAT)));
         
     }
 
@@ -248,7 +246,13 @@ impl BiliLiveClient{
                 head_1 = get_msg_header(temp_head); 
             }
         } else if head_1.operation == 3 {
-             
+            let mut body: [u8;4]= [0,0,0,0] ;
+            body[0]=resv[16];
+            body[1]=resv[17];
+            body[2]=resv[18];
+            body[3]=resv[19];
+            let popularity = i32::from_be_bytes(body);
+            println!("popularity:{}",popularity);
         } else {
             println!(
                 "未知消息, unknown message operation={:?}, header={:?}}}",
@@ -286,11 +290,19 @@ impl BiliLiveClient{
 
     pub fn recive(&mut self){
         if self.ws.can_read(){
-            let msg =  self.ws.read().expect("Error reading message");
-            let res = msg.into_data();
-            if res.len()>=16{
-                self.parse_ws_message(res);
+            let msg =  self.ws.read();
+            match msg {
+                Ok(m)=>{
+                    let res = m.into_data();
+                    if res.len()>=16{
+                        self.parse_ws_message(res);
+                    }
+                },
+                Err(e)=>{
+                    panic!("read msg error");
+                }
             }
+            
             
         }
     }
