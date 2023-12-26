@@ -2,4 +2,6 @@
 
 Rust获取bilibili直播弹幕的库，使用WebSocket协议
 逻辑参考：https://github.com/xfgryujk/blivedm
-需要更改room_init_url 后面第二参数为房间号  作为练习来写的 自行参考
+需要更改sessdata（从网页上自己cookies里面获取） 及  房间号  （BiliLiveClient::new(sessdata, "5050", tx) 第二个参数就是房间号）  作为练习来写的 自行参考
+效果如图：
+  
