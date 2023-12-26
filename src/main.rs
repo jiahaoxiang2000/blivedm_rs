@@ -24,7 +24,7 @@ fn main() {
     // socket.send(Message::Binary(make_packet("{}", Operation::HEARTBEAT))).unwrap();
 
     let (tx,mut rx) = mpsc::channel(64);
-    let mut client = BiliLiveClient::new(sessdata, "813364", tx);
+    let mut client = BiliLiveClient::new(sessdata, "5050", tx);
     client.send_auth();
     client.send_heart_beat();
     let shared_client = Arc::new(Mutex::new(client));

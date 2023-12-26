@@ -152,11 +152,17 @@ pub fn init_server(sessdata:&str,room_id:&str)->(Value,AuthMessage){
     );
     headers.insert(USER_AGENT, HeaderValue::from_str(web::USER_AGENT).unwrap());
         // let res = get(web::UID_INIT_URL);
-    let (_, bod1y)= init_uid(headers.clone());
-    let body1_v:Value = serde_json::from_str(bod1y.as_str()).unwrap();
+    if !sessdata.is_empty(){
+        let (_, bod1y)= init_uid(headers.clone());
+        let body1_v:Value = serde_json::from_str(bod1y.as_str()).unwrap();
+    
+        println!("uid{:?}",body1_v["data"]["mid"]);
+        auth_map.insert("uid".to_string(), body1_v["data"]["mid"].as_i64().unwrap().to_string());
 
-    println!("uid{:?}",body1_v["data"]["mid"]);
-    auth_map.insert("uid".to_string(), body1_v["data"]["mid"].as_i64().unwrap().to_string());
+    }else{
+        auth_map.insert("uid".to_string(), "0".to_string());
+    }
+    
     let(res_stat2,buvid) = init_buvid(headers.clone());
     println!("2222222222222222{:?}",buvid.clone());
     auth_map.insert("buvid".to_string(), buvid.to_string());
