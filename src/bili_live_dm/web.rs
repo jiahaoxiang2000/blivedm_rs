@@ -1,21 +1,22 @@
-
+use brotlic::{CompressorWriter, DecompressorReader};
 use native_tls::{Identity, TlsAcceptor, TlsStream};
-use std::io::Read;
-use std::net::{TcpListener, TcpStream};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use tungstenite::Message;
+use std::io::Read;
+use std::net::{TcpListener, TcpStream};
 use tungstenite::stream::*;
-use brotlic::{CompressorWriter, DecompressorReader};
-use serde::{Deserialize, Serialize};
+use tungstenite::Message;
 
-pub const UID_INIT_URL:&str = "https://api.bilibili.com/x/web-interface/nav";
+pub const UID_INIT_URL: &str = "https://api.bilibili.com/x/web-interface/nav";
 
-pub const BUVID_INIT_URL:&str = "https://data.bilibili.com/v/";
+pub const BUVID_INIT_URL: &str = "https://data.bilibili.com/v/";
 
-pub const ROOM_INIT_URL:&str = "https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom";
+pub const ROOM_INIT_URL: &str =
+    "https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom";
 
-pub const DANMAKU_SERVER_CONF_URL:&str = "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo";
+pub const DANMAKU_SERVER_CONF_URL: &str =
+    "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo";
 
 // pub const DEFAULT_DANMAKU_SERVER_HOST:&str = "broadcastlv.chat.bilibili.com";
 
@@ -27,44 +28,34 @@ pub const DANMAKU_SERVER_CONF_URL:&str = "https://api.live.bilibili.com/xlive/we
 
 pub const USER_AGENT:&str= "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36";
 
-pub trait Handler{
+pub trait Handler {
     fn deal_message(&self);
 }
 
- 
-
-
 #[derive(Debug)]
-pub struct DanmuServer{
-    pub host:String,
-    pub port:i32,
-    pub wss_port:i32,
-    pub ws_port:i32,
+pub struct DanmuServer {
+    pub host: String,
+    pub port: i32,
+    pub wss_port: i32,
+    pub ws_port: i32,
 }
 
-impl DanmuServer{
-    pub fn deafult()->DanmuServer{
-        DanmuServer{
-            host:String::from("broadcastlv.chat.bilibili.com"),
-            port:2243,
-            wss_port:443,
-            ws_port:2244,
-
+impl DanmuServer {
+    pub fn deafult() -> DanmuServer {
+        DanmuServer {
+            host: String::from("broadcastlv.chat.bilibili.com"),
+            port: 2243,
+            wss_port: 443,
+            ws_port: 2244,
         }
     }
 }
 
-
 // pub fn get_danmu_info_from(body:&str)->Vec<DanmuServer>{
 //     let json: Value = serde_json::from_str(body).unwrap();
 //     let category = json["cmd"].as_array().unwrap();
-    
-
 
 // }
-
-
-
 
 pub enum Operation {
     HANDSHAKE,
@@ -89,8 +80,6 @@ pub enum Operation {
     // # MinBusinessOp : 1000,
     // # MaxBusinessOp : 10000
 }
-
-
 
 pub fn make_packet(body: &str, ops: Operation) -> Vec<u8> {
     let json: Value = serde_json::from_str(body).unwrap();
@@ -123,7 +112,6 @@ pub fn make_packet(body: &str, ops: Operation) -> Vec<u8> {
     res.append(&mut body_content.to_vec());
     res
 }
-
 
 #[derive(Copy, Clone, Debug)]
 pub struct MSG_HEAD {
@@ -172,63 +160,64 @@ pub fn get_msg_header(v_s: &[u8]) -> MSG_HEAD {
     }
 }
 
-
-pub fn handle(json:Value)->String{
+pub fn handle(json: Value) -> String {
     let category = json["cmd"].as_str().unwrap();
-    let res:String;
+    let res: String;
     match category {
-        "DANMU_MSG" =>{
+        "DANMU_MSG" => {
             // println!("{}:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
-            res = format!("{}发送弹幕:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
+            res = format!(
+                "{}发送弹幕:{}",
+                json["info"][2][1].to_string(),
+                json["info"][1].to_string()
+            );
             // debug!("{}发送了弹幕:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
-        },
-        "SEND_GIFT" =>{
+        }
+        "SEND_GIFT" => {
             // println!("{}送出礼物:{}",json["data"]["uname"].to_string(),json["data"]["giftName"].to_string());
             // debug!("{}送出了礼物:{}",json["data"]["uname"].to_string(),json["data"]["giftName"].to_string());
-            res = format!("{}送出礼物:{}",json["info"][2][1].to_string(), json["info"][1].to_string());
-        },
-        _ =>{
+            res = format!(
+                "{}送出礼物:{}",
+                json["info"][2][1].to_string(),
+                json["info"][1].to_string()
+            );
+        }
+        _ => {
             // println!("未知消息:{:?}",json);
-            res="未知消息".to_string();
+            res = "未知消息".to_string();
         }
     }
     res
-
 }
 
-fn parse_business_message(head: MSG_HEAD, body: &[u8], temp:&mut Vec<String>) {
-    if head.operation == 5{
+fn parse_business_message(head: MSG_HEAD, body: &[u8], temp: &mut Vec<String>) {
+    if head.operation == 5 {
         if head.ver == 3 {
             let res = decompress(body).unwrap();
-            parse_ws_message(&res,temp);
+            parse_ws_message(&res, temp);
         } else if head.ver == 0 {
             let s = String::from_utf8(body.to_vec()).unwrap();
-            let res_json:Value = serde_json::from_str(s.as_str()).unwrap();
+            let res_json: Value = serde_json::from_str(s.as_str()).unwrap();
             let res = handle(res_json);
-            if res!="未知消息".to_string(){
+            if res != "未知消息".to_string() {
                 temp.push(res);
             }
         } else {
             println!("未知压缩格式")
         }
-    
     }
-    
 }
 
-
-pub fn decompress(body: &[u8])->std::io::Result<Vec<u8>> {
+pub fn decompress(body: &[u8]) -> std::io::Result<Vec<u8>> {
     //brotli解压缩byte数组
     let mut decompressed_reader: DecompressorReader<&[u8]> = DecompressorReader::new(body);
     let mut decoded_input = Vec::new();
 
     let size = decompressed_reader.read_to_end(&mut decoded_input)?;
-     Ok(decoded_input)
-
-     
+    Ok(decoded_input)
 }
 
-fn parse_ws_message(v: & Vec<u8> , temp:&mut Vec<String>) {
+fn parse_ws_message(v: &Vec<u8>, temp: &mut Vec<String>) {
     // let total_len = v.len();
     let mut offset = 0;
     let header = &v[0..16];
@@ -239,14 +228,14 @@ fn parse_ws_message(v: & Vec<u8> , temp:&mut Vec<String>) {
             // let pl = head_1.pack_len.clone();
             let body: &[u8] = &v[offset + 16..offset + (head_1.pack_len as usize)];
             // let s = String::from_utf8(body.to_vec()).unwrap();
-            parse_business_message(head_1, body,temp);
+            parse_business_message(head_1, body, temp);
             offset += head_1.pack_len as usize;
             if offset >= v.len() {
                 break;
             }
-             
-            let temp_head = &v[offset..(offset+16)];
-            head_1 = get_msg_header(temp_head); 
+
+            let temp_head = &v[offset..(offset + 16)];
+            head_1 = get_msg_header(temp_head);
         }
     } else if head_1.operation == 3 {
         println!(
@@ -261,7 +250,7 @@ fn parse_ws_message(v: & Vec<u8> , temp:&mut Vec<String>) {
     }
 }
 
-pub fn analyze_msg(msg: Message)->Vec<String> {
+pub fn analyze_msg(msg: Message) -> Vec<String> {
     let mut a = Vec::new();
     match msg {
         Message::Text(s) => {
@@ -270,8 +259,8 @@ pub fn analyze_msg(msg: Message)->Vec<String> {
         }
         Message::Binary(v) => {
             // print!("Binary {:?}", v);
-            
-            parse_ws_message(&v,&mut a);
+
+            parse_ws_message(&v, &mut a);
         }
         Message::Ping(v) => {
             println!("Ping {:?}", v);
@@ -292,33 +281,27 @@ pub fn analyze_msg(msg: Message)->Vec<String> {
     a
 }
 
-
-
 #[derive(Debug, Serialize, Deserialize)]
-pub struct AuthMessage{
+pub struct AuthMessage {
     uid: u64,
     roomid: u64,
-    protover:i32,
-    platform:String,
-    type_:i32,
-    buvid:String,
-    key:String,
+    protover: i32,
+    platform: String,
+    type_: i32,
+    buvid: String,
+    key: String,
 }
- 
 
-impl AuthMessage{
-    pub fn from(map:&HashMap<String,String>)->AuthMessage{
-        AuthMessage{
+impl AuthMessage {
+    pub fn from(map: &HashMap<String, String>) -> AuthMessage {
+        AuthMessage {
             uid: map.get("uid").unwrap().parse::<u64>().unwrap(),
             roomid: map.get("room_id").unwrap().parse::<u64>().unwrap(),
-            protover:3,
-            platform:"web".to_string(),
-            type_:2,
-            buvid:map.get("buvid").unwrap().to_string(),
-            key:map.get("token").unwrap().to_string(),
+            protover: 3,
+            platform: "web".to_string(),
+            type_: 2,
+            buvid: map.get("buvid").unwrap().to_string(),
+            key: map.get("token").unwrap().to_string(),
         }
     }
-
-
 }
- 
