@@ -13,16 +13,16 @@ use http::Response;
 use std::collections::HashMap;
 
 use crate::auth::*;
-use crate::models::{AuthMessage, DanmuServer, MsgHead};
+use crate::models::{AuthMessage, BiliMessage, DanmuServer, MsgHead};
 
 pub struct BiliLiveClient {
     ws: WebSocket<TlsStream<TcpStream>>,
     auth_msg: String,
-    ss: Sender<String>,
+    ss: Sender<BiliMessage>,
 }
 
 impl BiliLiveClient {
-    pub fn new(sessdata: &str, room_id: &str, r: Sender<String>) -> Self {
+    pub fn new(sessdata: &str, room_id: &str, r: Sender<BiliMessage>) -> Self {
         let (v, auth) = init_server(sessdata, room_id);
         let (ws, _res) = connect(v["host_list"].clone());
         BiliLiveClient {
@@ -85,11 +85,12 @@ impl BiliLiveClient {
             } else if h.ver == 0 {
                 let s = String::from_utf8(b.to_vec()).unwrap();
                 let res_json: Value = serde_json::from_str(s.as_str()).unwrap();
-                let res = handle(res_json);
-                if "未知消息".to_string() == res {
-                    return;
+                if let Some(msg) = handle(res_json) {
+                    if let BiliMessage::Unsupported = msg {
+                        return;
+                    }
+                    let _ = self.ss.try_send(msg);
                 }
-                let _ = self.ss.try_send(res);
             } else {
                 log::error!("Unknown compression format");
             }
@@ -274,20 +275,27 @@ pub fn decompress(body: &[u8]) -> std::io::Result<Vec<u8>> {
     Ok(decoded_input)
 }
 
-pub fn handle(json: Value) -> String {
+/// here we detail [info format is online](https://github.com/SocialSisterYi/bilibili-API-collect/blob/master/docs/live/message_stream.md)
+/// .
+pub fn handle(json: Value) -> Option<BiliMessage> {
     let category = json["cmd"].as_str().unwrap_or("");
     match category {
-        "DANMU_MSG" => format!(
-            "{}发送弹幕:{}",
-            json["info"][2][1].to_string(),
-            json["info"][1].to_string()
-        ),
-        "SEND_GIFT" => format!(
-            "{}送出礼物:{}",
-            json["info"][2][1].to_string(),
-            json["info"][1].to_string()
-        ),
-        _ => "未知消息".to_string(),
+        "DANMU_MSG" => Some(BiliMessage::Danmu {
+            user: json["info"][2][1]
+                .as_str()
+                .unwrap_or("<unknown>")
+                .to_string(),
+            text: json["info"][1].as_str().unwrap_or("").to_string(),
+        }),
+        "SEND_GIFT" => Some(BiliMessage::Gift {
+            user: json["info"][2][1]
+                .as_str()
+                .unwrap_or("<unknown>")
+                .to_string(),
+            gift: json["info"][1].as_str().unwrap_or("").to_string(),
+        }),
+        // Add more cases for other types as needed
+        _ => Some(BiliMessage::Unsupported),
     }
 }
 

@@ -56,7 +56,7 @@ fn main() {
     let rt = Runtime::new().unwrap();
     rt.spawn(async move {
         while let Some(msg) = rx.next().await {
-            println!("Received message: {}", msg);
+            println!("Received message: {:?}", msg);
         }
     });
 

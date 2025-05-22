@@ -55,6 +55,14 @@ impl AuthMessage {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum BiliMessage {
+    Danmu { user: String, text: String },
+    Gift { user: String, gift: String },
+    // Add more variants as needed
+    Unsupported,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
