@@ -124,7 +124,6 @@ pub const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb
 #[cfg(test)]
 mod tests {
     use super::*;
-    use reqwest::header::HeaderMap;
 
     #[test]
     fn test_uid_url_constant() {

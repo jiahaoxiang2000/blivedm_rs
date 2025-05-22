@@ -4,21 +4,16 @@
 use native_tls::TlsStream;
 use serde_json::Value;
 use std::net::TcpStream;
-use std::time::{Duration, Instant};
-use tungstenite::{client, protocol::*, Message, WebSocket};
+use tungstenite::{client, Message, WebSocket};
 
-use native_tls::TlsConnector;
 use url::Url;
-
-use reqwest::StatusCode;
 
 use futures_channel::mpsc::Sender;
 use http::Response;
-use reqwest::header::{HeaderMap, HeaderValue, COOKIE, USER_AGENT};
 use std::collections::HashMap;
 
 use crate::auth::*;
-use crate::models::{AuthMessage, DanmuServer, MSG_HEAD};
+use crate::models::{AuthMessage, DanmuServer, MsgHead};
 
 pub struct BiliLiveClient {
     ws: WebSocket<TlsStream<TcpStream>>,
@@ -81,7 +76,7 @@ impl BiliLiveClient {
         }
     }
 
-    pub fn parse_business_message(&mut self, h: MSG_HEAD, b: &[u8]) {
+    pub fn parse_business_message(&mut self, h: MsgHead, b: &[u8]) {
         if h.operation == 5 {
             if h.ver == 3 {
                 let res: Vec<u8> = decompress(b).unwrap();
@@ -218,15 +213,10 @@ pub fn make_packet(body: &str, ops: Operation) -> Vec<u8> {
     let pack_len: [u8; 4] = ((16 + body.len()) as u32).to_be_bytes();
     let raw_header_size: [u8; 2] = (16 as u16).to_be_bytes();
     let ver: [u8; 2] = (1 as u16).to_be_bytes();
-    let mut operation: [u8; 4] = [0; 4];
-    match ops {
-        Operation::AUTH => {
-            operation = (7 as u32).to_be_bytes();
-        }
-        Operation::HEARTBEAT => {
-            operation = (2 as u32).to_be_bytes();
-        }
-    }
+    let operation: [u8; 4] = match ops {
+        Operation::AUTH => (7 as u32).to_be_bytes(),
+        Operation::HEARTBEAT => (2 as u32).to_be_bytes(),
+    };
     let seq_id: [u8; 4] = (1 as u32).to_be_bytes();
     let mut res = pack_len.to_vec();
     res.append(&mut raw_header_size.to_vec());
@@ -237,7 +227,7 @@ pub fn make_packet(body: &str, ops: Operation) -> Vec<u8> {
     res
 }
 
-pub fn get_msg_header(v_s: &[u8]) -> MSG_HEAD {
+pub fn get_msg_header(v_s: &[u8]) -> MsgHead {
     let mut pack_len: [u8; 4] = [0; 4];
     let mut raw_header_size: [u8; 2] = [0; 2];
     let mut ver: [u8; 2] = [0; 2];
@@ -265,7 +255,7 @@ pub fn get_msg_header(v_s: &[u8]) -> MSG_HEAD {
             continue;
         }
     }
-    MSG_HEAD {
+    MsgHead {
         pack_len: u32::from_be_bytes(pack_len),
         raw_header_size: u16::from_be_bytes(raw_header_size),
         ver: u16::from_be_bytes(ver),

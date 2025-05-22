@@ -24,7 +24,7 @@ impl DanmuServer {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct MSG_HEAD {
+pub struct MsgHead {
     pub pack_len: u32,
     pub raw_header_size: u16,
     pub ver: u16,
@@ -66,12 +66,10 @@ mod tests {
         let mut map = std::collections::HashMap::new();
         map.insert("uid".to_string(), "12345".to_string());
         map.insert("room_id".to_string(), "67890".to_string());
-        map.insert("buvid".to_string(), "test_buvid".to_string());
         map.insert("token".to_string(), "test_token".to_string());
         let auth = AuthMessage::from(&map);
         assert_eq!(auth.uid, 12345);
         assert_eq!(auth.roomid, 67890);
-        assert_eq!(auth.buvid, "test_buvid");
         assert_eq!(auth.key, "test_token");
     }
 }
