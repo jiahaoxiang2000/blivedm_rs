@@ -39,7 +39,6 @@ pub struct AuthMessage {
     pub protover: i32,
     pub platform: String,
     pub type_: i32,
-    pub buvid: String,
     pub key: String,
 }
 
@@ -51,7 +50,6 @@ impl AuthMessage {
             protover: 3,
             platform: "web".to_string(),
             type_: 2,
-            buvid: "".to_string(),
             key: map.get("token").unwrap().to_string(),
         }
     }

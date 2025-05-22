@@ -308,7 +308,6 @@ mod tests {
         let sessdata = std::env::var("SESSDATA").unwrap_or_else(|_| "dummy_sessdata".to_string());
         let room_id = "24779526";
         let (tx, _rx) = channel(10);
-        // This will likely fail unless valid credentials are provided, but checks construction
         let _client = BiliLiveClient::new(&sessdata, room_id, tx);
     }
 }
