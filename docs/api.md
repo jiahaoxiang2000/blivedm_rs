@@ -83,6 +83,52 @@ client.recive();
 
 ---
 
+## Message Handling Flow
+
+```mermaid
+graph TD
+    S[Server] -- "WebSocket frame" --> R[recive]
+    R -- "Vec<u8>" --> P[parse_ws_message]
+    P -- "operation==5/8" --> B[parse_business_message]
+    P -- "operation==3" --> L[Log popularity]
+    P -- "unknown" --> E[Log error]
+    B -- "ver==3" --> D[decompress & parse_ws_message]
+    B -- "ver==0" --> H[handle]
+    H -- "recognized" --> C[Send to channel]
+    H -- "unknown" --> U[Ignore/log]
+```
+
+The message handling in `BiliLiveClient` works as follows:
+
+1. **Receiving Data**: The `recive()` method reads raw WebSocket frames from the server. If a message is available, it is passed to `parse_ws_message()`.
+2. **Parsing Message Header**: `parse_ws_message()` extracts the protocol header using `get_msg_header()`, which determines the message type (operation code).
+3. **Dispatching by Operation**:
+    - If `operation == 5` or `8`: The message is a business message (e.g., danmaku, gift) or a heartbeat reply. The method loops through all protocol packets in the frame, calling `parse_business_message()` for each.
+    - If `operation == 3`: The message contains the current room popularity (viewer count), which is logged.
+    - Otherwise: The message is unknown and logged as an error.
+4. **Business Message Handling**: In `parse_business_message()`:
+    - If the message is compressed (`ver == 3`), it is decompressed and recursively parsed.
+    - If the message is JSON (`ver == 0`), it is parsed and passed to `handle()`, which formats it as a human-readable string (e.g., "user sent danmaku").
+    - Recognized messages are sent to the channel (`Sender<String>`) for further processing or display.
+    - Unknown or unsupported formats are logged as errors.
+
+#### Supported Message Types
+- **Danmaku (弹幕)**: Chat messages sent by users.
+- **Gift**: Gifts sent by users.
+- **Popularity**: Viewer count updates.
+- **Other**: Unrecognized messages are ignored or logged.
+
+#### Example Message Flow
+1. Server sends a WebSocket frame.
+2. `recive()` reads the frame.
+3. `parse_ws_message()` splits the frame into protocol packets.
+4. For each packet:
+    - If business message, `parse_business_message()` parses and sends to channel.
+    - If popularity, logs the count.
+    - Otherwise, logs error.
+
+---
+
 ### Data Models
 
 - `DanmuServer` — Represents a danmaku server endpoint.
@@ -125,3 +171,4 @@ pub enum Operation {
 ## Notes
 - Only public and used APIs are shown here. For more details, see the source code and integration example in `src/bin/integration_bili_live_client.rs`.
 - The architecture diagram above shows the relationship between the main components and data flow.
+- The message handling section above explains how incoming messages are processed and dispatched.
