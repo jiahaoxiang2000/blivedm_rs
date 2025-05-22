@@ -67,11 +67,12 @@ impl BiliLiveClient {
             body[2] = resv[18];
             body[3] = resv[19];
             let popularity = i32::from_be_bytes(body);
-            println!("popularity:{}", popularity);
+            log::info!("popularity:{}", popularity);
         } else {
-            println!(
-                "未知消息, unknown message operation={:?}, header={:?}}}",
-                head_1.operation, head_1
+            log::error!(
+                "unknown message operation={:?}, header={:?}}}",
+                head_1.operation,
+                head_1
             )
         }
     }
@@ -90,12 +91,12 @@ impl BiliLiveClient {
                 }
                 let _ = self.ss.try_send(res);
             } else {
-                println!("未知压缩格式");
+                log::error!("Unknown compression format");
             }
         } else if h.operation == 8 {
             self.send_heart_beat();
         } else {
-            println!("未知消息格式{}", h.operation);
+            log::error!("Unknown message format {}", h.operation);
         }
     }
 
