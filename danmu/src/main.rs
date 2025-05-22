@@ -6,22 +6,35 @@ use client::websocket::BiliLiveClient;
 use futures::channel::mpsc;
 use futures::stream::StreamExt;
 use plugins::terminal_display::TerminalDisplayHandler;
+use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 
 fn main() {
-    if std::env::var("DEBUG").unwrap_or_default() == "1" {
+    // Load SESSDATA and room_id from CLI args or environment variables
+    let args: Vec<String> = env::args().collect();
+    let sessdata = if args.len() > 1 {
+        args[1].clone()
+    } else {
+        env::var("SESSDATA").unwrap_or_else(|_| "dummy_sessdata".to_string())
+    };
+    let room_id = if args.len() > 2 {
+        args[2].clone()
+    } else {
+        env::var("ROOM_ID").unwrap_or_else(|_| "24779526".to_string())
+    };
+
+    if env::var("DEBUG").unwrap_or_default() == "1" {
         let _ = env_logger::builder()
             .is_test(true)
             .filter_level(log::LevelFilter::Debug)
             .try_init();
     }
     // Get SESSDATA from environment variable for real test
-    let sessdata = std::env::var("SESSDATA").unwrap_or_else(|_| "dummy_sessdata".to_string());
     let (tx, mut rx) = mpsc::channel(64);
-    let mut client = BiliLiveClient::new(&sessdata, "24779526", tx);
+    let mut client = BiliLiveClient::new(&sessdata, &room_id, tx);
     client.send_auth();
     client.send_heart_beat();
     let shared_client: Arc<Mutex<BiliLiveClient>> = Arc::new(Mutex::new(client));
