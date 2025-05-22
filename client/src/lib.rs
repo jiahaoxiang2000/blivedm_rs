@@ -3,4 +3,5 @@
 
 pub mod auth;
 pub mod models;
+pub mod scheduler;
 pub mod websocket;

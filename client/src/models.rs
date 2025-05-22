@@ -55,7 +55,7 @@ impl AuthMessage {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum BiliMessage {
     Danmu { user: String, text: String },
     Gift { user: String, gift: String },
