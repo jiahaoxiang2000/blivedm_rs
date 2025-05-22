@@ -97,12 +97,14 @@ pub fn init_host_server(headers: HeaderMap, room_id: u64) -> (StatusCode, String
         .unwrap();
     let url = format!("{}?id={}&type=0", DANMAKU_SERVER_CONF_URL, room_id);
     let response = client.get(url).headers(headers).send();
+    log::debug!("init host server response: {:?}", response);
     let stat: StatusCode;
     let body: String;
     match response {
         Ok(resp) => {
             stat = resp.status();
             body = resp.text().unwrap();
+            log::info!("init host server response body: {:?}", body);
         }
         Err(_) => {
             panic!("init buvid failed");

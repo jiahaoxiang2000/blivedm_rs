@@ -51,7 +51,7 @@ impl AuthMessage {
             protover: 3,
             platform: "web".to_string(),
             type_: 2,
-            buvid: map.get("buvid").unwrap().to_string(),
+            buvid: "".to_string(),
             key: map.get("token").unwrap().to_string(),
         }
     }
