@@ -180,16 +180,16 @@ pub fn init_server(sessdata: &str, room_id: &str) -> (Value, AuthMessage) {
     } else {
         auth_map.insert("uid".to_string(), "0".to_string());
     }
-    let (_, body3) = init_room(headers.clone(), room_id);
-    let body3_v: Value = serde_json::from_str(body3.as_str()).unwrap();
-    let room_info = &body3_v["data"]["room_info"];
-    let room_id = room_info["room_id"].as_u64().unwrap();
+    // here the live room id is easily obtained, so we not get it by url.
     auth_map.insert("room_id".to_string(), room_id.to_string());
-    let (_, body4) = init_host_server(headers.clone(), room_id);
+
+    let room_id_num = room_id.parse::<u64>().expect("room_id must be a valid u64");
+    let (_, body4) = init_host_server(headers.clone(), room_id_num);
     let body4_res: Value = serde_json::from_str(body4.as_str()).unwrap();
     let server_info = &body4_res["data"];
     let token = &body4_res["data"]["token"].as_str().unwrap();
     auth_map.insert("token".to_string(), token.to_string());
+
     let auth_msg = AuthMessage::from(&auth_map);
     (server_info.clone(), auth_msg)
 }

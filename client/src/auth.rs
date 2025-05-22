@@ -61,6 +61,13 @@ pub fn init_buvid(headers: HeaderMap) -> (StatusCode, String) {
     (stat, buvid)
 }
 
+/// Initializes the room by sending a request with the given room ID.
+///
+/// Note: This function should NOT be used for document creation.
+///
+/// # Panics
+///
+/// Panics if the request fails.
 pub fn init_room(headers: HeaderMap, temp_room_id: &str) -> (StatusCode, String) {
     let client = reqwest::blocking::Client::builder()
         .https_only(true)
@@ -74,6 +81,7 @@ pub fn init_room(headers: HeaderMap, temp_room_id: &str) -> (StatusCode, String)
         Ok(resp) => {
             stat = resp.status();
             body = resp.text().unwrap();
+            log::info!("init room response: {:?}", body);
         }
         Err(_) => {
             panic!("init buvid failed");
