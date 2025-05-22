@@ -10,7 +10,6 @@ pub fn init_uid(headers: HeaderMap) -> (StatusCode, String) {
         .build()
         .unwrap();
     let response = client.get(UID_INIT_URL).headers(headers).send();
-    print!("{:?}", response);
     let stat: StatusCode;
     let body: String;
     match response {

@@ -169,6 +169,7 @@ pub fn init_server(sessdata: &str, room_id: &str) -> (Value, AuthMessage) {
         reqwest::header::USER_AGENT,
         reqwest::header::HeaderValue::from_static("Mozilla/5.0"),
     );
+    log::debug!("headers: {:?}", headers);
     if !sessdata.is_empty() {
         let (_, bod1y) = init_uid(headers.clone());
         let body1_v: Value = serde_json::from_str(bod1y.as_str()).unwrap();
@@ -308,11 +309,18 @@ mod tests {
 
     #[test]
     fn test_bili_live_client_connect() {
-        // These are dummy values; replace with valid SESSDATA and room_id for real test
-        let sessdata = "dummy_sessdata";
-        let room_id = "1";
+        // Enable debug log output for test if DEBUG=1 is set
+        if std::env::var("DEBUG").unwrap_or_default() == "1" {
+            let _ = env_logger::builder()
+                .is_test(true)
+                .filter_level(log::LevelFilter::Debug)
+                .try_init();
+        }
+        // Get SESSDATA from environment variable for real test
+        let sessdata = std::env::var("SESSDATA").unwrap_or_else(|_| "dummy_sessdata".to_string());
+        let room_id = "24779526";
         let (tx, _rx) = channel(10);
         // This will likely fail unless valid credentials are provided, but checks construction
-        let _client = BiliLiveClient::new(sessdata, room_id, tx);
+        let _client = BiliLiveClient::new(&sessdata, room_id, tx);
     }
 }
