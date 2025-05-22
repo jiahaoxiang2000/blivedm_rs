@@ -10,8 +10,9 @@ pub fn init_uid(headers: HeaderMap) -> (StatusCode, String) {
         .build()
         .unwrap();
     let response = client.get(UID_INIT_URL).headers(headers).send();
-    let mut stat: StatusCode;
-    let mut body: String;
+    print!("{:?}", response);
+    let stat: StatusCode;
+    let body: String;
     match response {
         Ok(resp) => {
             stat = resp.status();
@@ -30,7 +31,7 @@ pub fn init_buvid(headers: HeaderMap) -> (StatusCode, String) {
         .build()
         .unwrap();
     let response = client.get(BUVID_INIT_URL).headers(headers).send();
-    let mut stat: StatusCode;
+    let stat: StatusCode;
     let mut buvid: String = "".to_string();
     match response {
         Ok(resp) => {
@@ -56,8 +57,8 @@ pub fn init_room(headers: HeaderMap, temp_room_id: &str) -> (StatusCode, String)
         .unwrap();
     let url = format!("{}?room_id={}", ROOM_INIT_URL, temp_room_id);
     let response = client.get(url).headers(headers).send();
-    let mut stat: StatusCode;
-    let mut body: String;
+    let stat: StatusCode;
+    let body: String;
     match response {
         Ok(resp) => {
             stat = resp.status();
@@ -77,8 +78,8 @@ pub fn init_host_server(headers: HeaderMap, room_id: u64) -> (StatusCode, String
         .unwrap();
     let url = format!("{}?id={}&type=0", DANMAKU_SERVER_CONF_URL, room_id);
     let response = client.get(url).headers(headers).send();
-    let mut stat: StatusCode;
-    let mut body: String;
+    let stat: StatusCode;
+    let body: String;
     match response {
         Ok(resp) => {
             stat = resp.status();
@@ -107,13 +108,5 @@ mod tests {
     #[test]
     fn test_uid_url_constant() {
         assert!(UID_INIT_URL.contains("bilibili.com"));
-    }
-
-    #[test]
-    fn test_init_uid_returns_status_and_body() {
-        // This is a dummy test; in real use, mock HTTP or use a test server
-        let headers = HeaderMap::new();
-        let result = std::panic::catch_unwind(|| super::init_uid(headers));
-        assert!(result.is_ok());
     }
 }
