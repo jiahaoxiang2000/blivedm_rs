@@ -23,7 +23,7 @@ graph TD
 1. **WebSocket Client**  
    The system uses a WebSocket client to connect to a Bilibili live room and receive danmaku messages in real time. If using the APP OAuth method, registration on the Bilibili Open Platform is required.
 
-2. **Event Trigger System**  
+2. **Event Trigger System (Schedule)**  
    When a danmaku message is received, it triggers corresponding events in the application.  
    - Events can be triggered in parallel, allowing multiple handlers to process messages simultaneously.
    - Alternatively, events can be triggered in a chain (sequentially), preserving the order of message handling.
