@@ -3,4 +3,7 @@
 * [Introduction](README.md)
 * [Usage](usage.md)
 * [Architecture](architecture.md)
-* [API Reference](api.md)
+* [Client API](client.md)
+* [Scheduler](scheduler.md)
+* [Plugins](plugins.md)
+* [Danmu](danmu.md)
