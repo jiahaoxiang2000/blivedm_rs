@@ -180,8 +180,6 @@ pub fn init_server(sessdata: &str, room_id: &str) -> (Value, AuthMessage) {
     } else {
         auth_map.insert("uid".to_string(), "0".to_string());
     }
-    let (_, buvid) = init_buvid(headers.clone());
-    auth_map.insert("buvid".to_string(), buvid.to_string());
     let (_, body3) = init_room(headers.clone(), room_id);
     let body3_v: Value = serde_json::from_str(body3.as_str()).unwrap();
     let room_info = &body3_v["data"]["room_info"];

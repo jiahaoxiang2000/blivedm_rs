@@ -26,7 +26,15 @@ pub fn init_uid(headers: HeaderMap) -> (StatusCode, String) {
     (stat, body)
 }
 
+/// Initializes the buvid by sending a request and extracting the 'buvid3' cookie.
+///
+/// Note: This function is not used for document creation.
+///
+/// # Panics
+///
+/// Panics if the request fails.
 pub fn init_buvid(headers: HeaderMap) -> (StatusCode, String) {
+    // Not used for document creation.
     let client = reqwest::blocking::Client::builder()
         .https_only(true)
         .build()
@@ -39,8 +47,10 @@ pub fn init_buvid(headers: HeaderMap) -> (StatusCode, String) {
             stat = resp.status();
             let cookies = resp.cookies();
             for i in cookies {
+                log::debug!("init buvid response cookie : {:?}", i);
                 if "buvid3".eq(i.name()) {
                     buvid = i.value().to_string();
+                    log::info!("init buvid response: {:?}", buvid);
                 }
             }
         }
