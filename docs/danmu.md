@@ -28,7 +28,17 @@ cargo run -p danmu
 
 If not provided, the binary will use default values for both.
 
-3. Incoming messages will be processed by the registered plugin (e.g., printed to the terminal).
+### Build Release Binary
+
+To build an optimized release binary:
+
+```sh
+cargo build -p danmu --release
+```
+
+The resulting binary will be in `target/release/danmu`.
+
+Incoming messages will be processed by the registered plugin (e.g., printed to the terminal).
 
 ## Extending
 - To test other plugins, register them in `main.rs` using the scheduler.
