@@ -167,12 +167,12 @@ pub fn init_server(sessdata: &str, room_id: &str) -> (Value, AuthMessage) {
     );
     headers.insert(
         reqwest::header::USER_AGENT,
-        reqwest::header::HeaderValue::from_static("Mozilla/5.0"),
+        reqwest::header::HeaderValue::from_static(crate::auth::USER_AGENT),
     );
     log::debug!("headers: {:?}", headers);
     if !sessdata.is_empty() {
-        let (_, bod1y) = init_uid(headers.clone());
-        let body1_v: Value = serde_json::from_str(bod1y.as_str()).unwrap();
+        let (_, body1) = init_uid(headers.clone());
+        let body1_v: Value = serde_json::from_str(body1.as_str()).unwrap();
         auth_map.insert(
             "uid".to_string(),
             body1_v["data"]["mid"].as_i64().unwrap().to_string(),

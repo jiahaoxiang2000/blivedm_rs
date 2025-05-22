@@ -10,12 +10,14 @@ pub fn init_uid(headers: HeaderMap) -> (StatusCode, String) {
         .build()
         .unwrap();
     let response = client.get(UID_INIT_URL).headers(headers).send();
+    log::debug!("init uid response: {:?}", response);
     let stat: StatusCode;
     let body: String;
     match response {
         Ok(resp) => {
             stat = resp.status();
             body = resp.text().unwrap();
+            log::info!("init uid response: {:?}", body);
         }
         Err(_) => {
             panic!("init uid failed");
