@@ -1,0 +1,3 @@
+[submodule ".github/prompts"]
+	path = .github/prompts
+	url = git@github.com:jiahaoxiang2000/prompts.git
