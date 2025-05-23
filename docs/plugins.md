@@ -47,8 +47,33 @@ flowchart TD
 - The TTS service converts the text into speech audio.
 - The plugin plays the generated audio in real time.
 
+### Usage
+
+Add the TTS plugin handler to your scheduler. You can specify the TTS command and arguments (for example, to use a Chinese voice on macOS):
+
+```rust
+use plugins::tts_handler;
+use client::scheduler::Scheduler;
+use std::sync::Arc;
+
+let mut scheduler = Scheduler::new();
+// For macOS Chinese voice:
+let tts = tts_handler(
+    "say".to_string(),
+    vec!["-v".to_string(), "SinJi".to_string()]
+);
+scheduler.add_sequential_handler(tts);
+```
+
+On other platforms, you can use a different TTS command, such as `echo` for testing:
+
+```rust
+let tts = tts_handler("echo".to_string(), vec![]);
+scheduler.add_sequential_handler(tts);
+```
+
 ### Implementation
 
-The TTS plugin implements the `EventHandler` trait. On receiving a `Danmaku` event, it processes the message as described above.
+The TTS plugin implements the `EventHandler` trait. On receiving a `Danmaku` event, it processes the message as described above, passing the text to the configured TTS command with any additional arguments.
 
 This allows you to add voice feedback to your live room, making interactions more engaging and accessible.
