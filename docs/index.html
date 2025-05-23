@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
   <!-- Theme -->
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify/lib/themes/vue.css">
 </head>
+
 <body>
   <div id="app"></div>
   <script>
@@ -18,6 +20,7 @@
       homepage: 'README.md',
       relativePath: true,
       auto2top: true,
+      subMaxLevel: 3, // Show up to 3 levels of headings in the sidebar
       search: {
         maxAge: 86400000,
         paths: 'auto',
@@ -36,5 +39,7 @@
   <script src="//cdn.jsdelivr.net/npm/prismjs/components/prism-rust.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify-mermaid@2/dist/docsify-mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-plugin-toc@1.3.1/dist/docsify-plugin-toc.min.js"></script>
 </body>
+
 </html>

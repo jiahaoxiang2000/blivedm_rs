@@ -35,7 +35,7 @@ The TTS (Text-to-Speech) plugin enables your application to read out text messag
 ### How it works
 
 ```mermaid
-flowchart TD
+flowchart LR
     A[User sends Danmaku message] --> B[TTS Plugin receives Danmaku event]
     B --> C[Send message text to TTS service]
     C --> D[TTS service returns speech audio]
