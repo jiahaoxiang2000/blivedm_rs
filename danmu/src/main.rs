@@ -67,7 +67,7 @@ fn main() {
                     break;
                 }
             }
-            thread::sleep(Duration::new(0, 10));
+            thread::sleep(Duration::from_millis(10)); // instead of 10 microseconds
         }
     });
 
@@ -75,6 +75,23 @@ fn main() {
     let mut scheduler = Scheduler::new();
     let terminal_handler = Arc::new(TerminalDisplayHandler);
     scheduler.add_sequential_handler(terminal_handler);
+
+    // Add the TTS handler for macOS Chinese voice
+    #[cfg(target_os = "macos")]
+    {
+        use plugins::tts_handler;
+        let tts = tts_handler(
+            "say".to_string(),
+            vec!["-v".to_string(), "SinJi".to_string()],
+        );
+        scheduler.add_sequential_handler(tts);
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        use plugins::tts_handler;
+        let tts = tts_handler("echo".to_string(), vec![]);
+        scheduler.add_sequential_handler(tts);
+    }
 
     // create a thread to process the rx channel messages using tokio runtime and pass to scheduler
     let rt = Runtime::new().unwrap();
