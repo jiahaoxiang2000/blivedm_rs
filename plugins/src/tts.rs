@@ -53,7 +53,22 @@ mod tests {
         handler.handle(&msg);
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_tts_handler_danmu() {
+        let handler = TtsHandler::new(
+            "espeak-ng".to_string(),
+            vec!["-v".to_string(), "cmn".to_string()],
+        );
+        let text = "您好，欢迎来到直播间。".to_string();
+        let msg = BiliMessage::Danmu {
+            user: "测试用户".to_string(),
+            text: text.clone(),
+        };
+        handler.handle(&msg);
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     #[test]
     fn test_tts_handler_danmu() {
         let handler = TtsHandler::new("echo".to_string(), vec![]);

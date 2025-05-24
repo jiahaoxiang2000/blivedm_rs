@@ -65,6 +65,16 @@ let tts = tts_handler(
 scheduler.add_sequential_handler(tts);
 ```
 
+On Linux (Arch Linux), you can use `espeak-ng` with Chinese voice:
+
+```rust
+let tts = tts_handler(
+    "espeak-ng".to_string(),
+    vec!["-v".to_string(), "cmn".to_string()]
+);
+scheduler.add_sequential_handler(tts);
+```
+
 On other platforms, you can use a different TTS command, such as `echo` for testing:
 
 ```rust

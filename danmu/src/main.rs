@@ -86,7 +86,16 @@ fn main() {
         );
         scheduler.add_sequential_handler(tts);
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "linux")]
+    {
+        use plugins::tts_handler;
+        let tts = tts_handler(
+            "espeak-ng".to_string(),
+            vec!["-v".to_string(), "cmn".to_string()],
+        );
+        scheduler.add_sequential_handler(tts);
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     {
         use plugins::tts_handler;
         let tts = tts_handler("echo".to_string(), vec![]);
