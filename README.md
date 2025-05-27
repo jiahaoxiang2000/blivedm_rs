@@ -21,3 +21,4 @@ The Library Documentation is also available at [pages](https://jiahaoxiang2000.g
 - [blivedm](https://github.com/xfgryujk/blivedm): Original Python implementation of the Bilibili live DM protocol.
 - [blivedm-rs](https://github.com/yanglul/blivedm_rs): Rust port of the blivedm library.
 - [bililive-rs](https://github.com/LightQuantumArchive/bililive-rs): Another Rust implementation for Bilibili live streaming.
+- [bilibili-API-collection](https://github.com/SocialSisterYi/bilibili-API-collection): Bilibili API collection by SocialSisterYi.
