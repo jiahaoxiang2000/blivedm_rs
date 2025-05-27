@@ -12,7 +12,11 @@ pub fn init_uid(headers: HeaderMap) -> (StatusCode, String) {
         .https_only(true)
         .build()
         .unwrap();
-    let response = client.get(UID_INIT_URL).headers(headers).send();
+    
+    let mut request_headers = headers;
+    request_headers.insert("user-agent", USER_AGENT.parse().unwrap());
+    
+    let response = client.get(UID_INIT_URL).headers(request_headers).send();
     log::debug!("init uid response: {:?}", response);
     let stat: StatusCode;
     let body: String;
@@ -42,7 +46,11 @@ pub fn init_buvid(headers: HeaderMap) -> (StatusCode, String) {
         .https_only(true)
         .build()
         .unwrap();
-    let response = client.get(BUVID_INIT_URL).headers(headers).send();
+    
+    let mut request_headers = headers;
+    request_headers.insert("user-agent", USER_AGENT.parse().unwrap());
+    
+    let response = client.get(BUVID_INIT_URL).headers(request_headers).send();
     let stat: StatusCode;
     let mut buvid: String = "".to_string();
     match response {
@@ -76,8 +84,12 @@ pub fn init_room(headers: HeaderMap, temp_room_id: &str) -> (StatusCode, String)
         .https_only(true)
         .build()
         .unwrap();
+    
+    let mut request_headers = headers;
+    request_headers.insert("user-agent", USER_AGENT.parse().unwrap());
+    
     let url = format!("{}?room_id={}", ROOM_INIT_URL, temp_room_id);
-    let response = client.get(url).headers(headers).send();
+    let response = client.get(url).headers(request_headers).send();
     let stat: StatusCode;
     let body: String;
     match response {
@@ -99,8 +111,11 @@ pub fn init_host_server(headers: HeaderMap, room_id: u64) -> (StatusCode, String
         .build()
         .unwrap();
     
+    let mut request_headers = headers.clone();
+    request_headers.insert("user-agent", USER_AGENT.parse().unwrap());
+    
     // Get WBI keys for signing
-    let wbi_keys = match get_wbi_keys(headers.clone()) {
+    let wbi_keys = match get_wbi_keys(request_headers.clone()) {
         Ok(keys) => keys,
         Err(e) => {
             log::error!("Failed to get WBI keys: {:?}", e);
@@ -121,7 +136,7 @@ pub fn init_host_server(headers: HeaderMap, room_id: u64) -> (StatusCode, String
     // Construct final URL
     let url = format!("{}?{}", DANMAKU_SERVER_CONF_URL, signed_query);
     
-    let response = client.get(url).headers(headers).send();
+    let response = client.get(url).headers(request_headers).send();
     log::debug!("init host server response: {:?}", response);
     let stat: StatusCode;
     let body: String;
@@ -226,9 +241,12 @@ fn get_wbi_keys(headers: HeaderMap) -> Result<(String, String), reqwest::Error> 
         .build()
         .unwrap();
     
+    let mut request_headers = headers;
+    request_headers.insert("user-agent", USER_AGENT.parse().unwrap());
+    
     let response = client
         .get("https://api.bilibili.com/x/web-interface/nav")
-        .headers(headers)
+        .headers(request_headers)
         .send()?;
     
     let res_wbi: ResWbi = response.json()?;
@@ -250,7 +268,7 @@ pub const ROOM_INIT_URL: &str =
     "https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom";
 pub const DANMAKU_SERVER_CONF_URL: &str =
     "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo";
-pub const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Safari/537.36";
+pub const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64; rv:138.0) Gecko/20100101 Firefox/138.0";
 
 #[cfg(test)]
 mod tests {
@@ -449,5 +467,34 @@ mod tests {
         // Extract and verify the w_rid specifically
         let w_rid = result.split("w_rid=").nth(1).unwrap();
         assert_eq!(w_rid, "fa20533eb27334ba6f2ec7263721319a");
+    }
+
+    #[test]
+    fn test_third_bilibili_url_signature() {
+        // Test the third URL example from README:
+        // "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=24779526&type=0&web_location=444.8&wts=1748312554&w_rid=30f250e8abd9effea1bcb88aab416507"
+        
+        let params = vec![
+            ("id", String::from("24779526")),
+            ("type", String::from("0")),
+            ("web_location", String::from("444.8")),
+        ];
+        
+        let result = _encode_wbi(
+            params,
+            (
+                "7cd084941338484aae1ad9425b84077c".to_string(),
+                "4932caff0ff746eab6f01bf08b70ac45".to_string()
+            ),
+            1748312554
+        );
+        
+        // Expected complete query string from working URL
+        let expected = "id=24779526&type=0&web_location=444.8&wts=1748312554&w_rid=30f250e8abd9effea1bcb88aab416507";
+        assert_eq!(result, expected);
+        
+        // Extract and verify the w_rid specifically
+        let w_rid = result.split("w_rid=").nth(1).unwrap();
+        assert_eq!(w_rid, "30f250e8abd9effea1bcb88aab416507");
     }
 }
