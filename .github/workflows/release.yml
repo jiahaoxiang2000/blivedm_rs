@@ -36,8 +36,8 @@ jobs:
           override: true
           profile: minimal
 
-      - name: Cache cargo registry
-        uses: actions/cache@v3
+      - name: Cache cargo registry 
+        uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
@@ -45,7 +45,7 @@ jobs:
             ${{ runner.os }}-cargo-registry-
 
       - name: Cache cargo index
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
@@ -53,7 +53,7 @@ jobs:
             ${{ runner.os }}-cargo-index-
 
       - name: Cache target directory
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: target
           key: ${{ runner.os }}-${{ matrix.target }}-target-${{ hashFiles('**/Cargo.lock') }}
@@ -85,7 +85,7 @@ jobs:
           cp target/${{ matrix.target }}/release/integration_bili_live_client${{ matrix.binary-suffix }} artifacts/integration_bili_live_client${{ matrix.binary-suffix }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
           path: artifacts/
@@ -101,7 +101,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
 
       - name: Create release archives
         run: |
@@ -134,7 +134,7 @@ jobs:
             echo "" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "## Binaries" >> $GITHUB_ENV
-            echo "Each archive contains the following binary:" >> $GITHUB_ENV
+            echo "Each archive contains the following binaries:" >> $GITHUB_ENV
             echo "- \`danmu\`: Main CLI application for danmu streaming with TTS" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "## Available Downloads" >> $GITHUB_ENV
@@ -162,7 +162,7 @@ jobs:
             echo "" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "## Binaries" >> $GITHUB_ENV
-            echo "Each archive contains the following binary:" >> $GITHUB_ENV
+            echo "Each archive contains the following binaries:" >> $GITHUB_ENV
             echo "- \`danmu\`: Main CLI application for danmu streaming with TTS" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "## Available Downloads" >> $GITHUB_ENV
@@ -185,33 +185,15 @@ jobs:
           fi
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag_name.outputs.TAG_NAME }}
-          release_name: Release ${{ steps.tag_name.outputs.TAG_NAME }}
+          name: Release ${{ steps.tag_name.outputs.TAG_NAME }}
           body: ${{ env.RELEASE_NOTES }}
+          files: |
+            blivedm-linux-x86_64.tar.gz
+            blivedm-macos-aarch64.tar.gz
           draft: false
           prerelease: false
-
-      - name: Upload Linux x86_64 Binary
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./blivedm-linux-x86_64.tar.gz
-          asset_name: blivedm-linux-x86_64.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload macOS aarch64 Binary
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./blivedm-macos-aarch64.tar.gz
-          asset_name: blivedm-macos-aarch64.tar.gz
-          asset_content_type: application/gzip
