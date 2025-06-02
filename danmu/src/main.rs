@@ -82,7 +82,7 @@ fn main() {
         use plugins::tts_handler;
         let tts = tts_handler(
             "say".to_string(),
-            vec!["-v".to_string(), "SinJi".to_string()],
+            vec!["-v".to_string(), "Mei-Jia".to_string()],
         );
         scheduler.add_sequential_handler(tts);
     }
