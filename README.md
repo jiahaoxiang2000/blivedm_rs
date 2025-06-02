@@ -2,6 +2,35 @@
 
 Bilibili live room DM (Danmaku) websocket client library for Rust.
 
+## Quick Start
+
+### Download Pre-built Binaries
+
+Download the latest release for your platform from the [Releases page](https://github.com/jiahaoxiang2000/blivedm_rs/releases):
+
+- **Linux x86_64**: `blivedm-linux-x86_64.tar.gz`
+- **macOS Intel**: `blivedm-macos-x86_64.tar.gz`
+- **macOS Apple Silicon**: `blivedm-macos-aarch64.tar.gz`
+
+```bash
+# Extract and run
+tar -xzf blivedm-<platform>.tar.gz
+./danmu <SESSDATA> <ROOM_ID>
+```
+
+### System Requirements
+
+- **Linux**: Install `espeak-ng` for TTS support: `sudo apt-get install espeak-ng`
+- **macOS**: No additional dependencies (uses built-in `say` command)
+
+### Building from Source
+
+```bash
+git clone https://github.com/jiahaoxiang2000/blivedm_rs.git
+cd blivedm_rs
+cargo build --release
+```
+
 ## Documentation
 
 The full documentation is available in the [`docs/`](docs/) folder. Here are the main sections:
