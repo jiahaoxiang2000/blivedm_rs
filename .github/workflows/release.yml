@@ -82,7 +82,6 @@ jobs:
       - name: Copy binaries to artifacts
         run: |
           cp target/${{ matrix.target }}/release/danmu${{ matrix.binary-suffix }} artifacts/danmu${{ matrix.binary-suffix }}
-          cp target/${{ matrix.target }}/release/integration_bili_live_client${{ matrix.binary-suffix }} artifacts/integration_bili_live_client${{ matrix.binary-suffix }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
