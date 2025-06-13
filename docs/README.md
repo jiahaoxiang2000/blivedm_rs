@@ -13,6 +13,11 @@ This documentation covers all aspects of the project, including getting started,
 - [Danmu Module](danmu.md): Information on the danmu (bullet chat) module.
 - [Scheduler](scheduler.md): Overview of the scheduler component.
 - [Plugins](plugins.md): Available plugins and how to use them.
+- [TTS Setup](tts-setup.md): Complete guide for setting up Text-to-Speech functionality.
+
+## Related Projects
+
+- **[danmu-tts](https://github.com/jiahaoxiang2000/danmu-tts)**: TTS server for converting danmu messages to speech using neural voices. Essential for TTS functionality in blivedm_rs.
 
 ---
 

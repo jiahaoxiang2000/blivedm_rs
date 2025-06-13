@@ -23,6 +23,19 @@ tar -xzf blivedm-<platform>.tar.gz
 - **Linux**: Install `espeak-ng` for TTS support: `sudo apt-get install espeak-ng`
 - **macOS**: No additional dependencies (uses built-in `say` command)
 
+### TTS Server Setup (Optional)
+
+For advanced TTS functionality, you can set up the danmu-tts server:
+
+```bash
+# Clone and setup the TTS server
+git clone https://github.com/jiahaoxiang2000/danmu-tts.git
+cd danmu-tts
+# Follow the setup instructions in the repository
+```
+
+The TTS server provides high-quality neural voices and multiple TTS backends. See the [danmu-tts repository](https://github.com/jiahaoxiang2000/danmu-tts) for detailed setup instructions.
+
 ### Building from Source
 
 ```bash

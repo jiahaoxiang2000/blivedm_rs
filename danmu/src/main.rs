@@ -6,6 +6,7 @@ use client::websocket::BiliLiveClient;
 use futures::channel::mpsc;
 use futures::stream::StreamExt;
 use plugins::terminal_display::TerminalDisplayHandler;
+use plugins::tts_handler_default;
 use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -76,31 +77,11 @@ fn main() {
     let terminal_handler = Arc::new(TerminalDisplayHandler);
     scheduler.add_sequential_handler(terminal_handler);
 
-    // Add the TTS handler for macOS Chinese voice
-    #[cfg(target_os = "macos")]
-    {
-        use plugins::tts_handler;
-        let tts = tts_handler(
-            "say".to_string(),
-            vec!["-v".to_string(), "Mei-Jia".to_string()],
-        );
-        scheduler.add_sequential_handler(tts);
-    }
-    #[cfg(target_os = "linux")]
-    {
-        use plugins::tts_handler;
-        let tts = tts_handler(
-            "espeak-ng".to_string(),
-            vec!["-v".to_string(), "cmn".to_string()],
-        );
-        scheduler.add_sequential_handler(tts);
-    }
-    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    {
-        use plugins::tts_handler;
-        let tts = tts_handler("echo".to_string(), vec![]);
-        scheduler.add_sequential_handler(tts);
-    }
+    // Add the TTS handler using REST API
+    // Make sure the danmu-tts server is running at http://192.168.71.202:8000
+    // The handler will automatically decode base64 audio data and play it
+    let tts_handler = tts_handler_default("http://192.168.71.202:8000".to_string());
+    scheduler.add_sequential_handler(tts_handler);
 
     // create a thread to process the rx channel messages using tokio runtime and pass to scheduler
     let rt = Runtime::new().unwrap();

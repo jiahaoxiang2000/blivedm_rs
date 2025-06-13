@@ -1,0 +1,12 @@
+[package]
+name = "tts_example"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "tts_example"
+path = "tts_example.rs"
+
+[dependencies]
+client = { path = "../client" }
+plugins = { path = "../plugins" }

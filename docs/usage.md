@@ -32,3 +32,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 For more detailed examples, see the [API Reference](api.md).
+
+## TTS Integration
+
+For text-to-speech functionality, set up the [danmu-tts server](https://github.com/jiahaoxiang2000/danmu-tts):
+
+```rust
+use plugins::tts_handler_default;
+use client::scheduler::Scheduler;
+
+let mut scheduler = Scheduler::new();
+
+// Add TTS handler (requires danmu-tts server running)
+let tts_handler = tts_handler_default("http://localhost:8000".to_string());
+scheduler.add_sequential_handler(tts_handler);
+
+// Process messages with TTS enabled
+for message in messages {
+    scheduler.trigger(message);
+}
+```
+
+See the [Plugins documentation](plugins.md) for detailed TTS setup instructions.
