@@ -13,7 +13,6 @@ This documentation covers all aspects of the project, including getting started,
 - [Danmu Module](danmu.md): Information on the danmu (bullet chat) module.
 - [Scheduler](scheduler.md): Overview of the scheduler component.
 - [Plugins](plugins.md): Available plugins and how to use them.
-- [TTS Setup](tts-setup.md): Complete guide for setting up Text-to-Speech functionality.
 
 ## Related Projects
 
