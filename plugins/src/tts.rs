@@ -37,14 +37,19 @@ struct TtsMetadata {
     #[allow(dead_code)]
     backend: String,
     #[allow(dead_code)]
-    voice: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    voice: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     duration: Option<f64>,
     #[allow(dead_code)]
-    sample_rate: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sample_rate: Option<u32>,
     #[allow(dead_code)]
-    format: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    format: Option<String>,
     #[allow(dead_code)]
-    size_bytes: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    size_bytes: Option<u64>,
 }
 
 /// TTS backend configuration
@@ -84,6 +89,7 @@ pub enum TtsMode {
 /// Messages are processed sequentially to avoid overlapping audio.
 pub struct TtsHandler {
     /// TTS configuration (either REST API or command-based)
+    #[allow(dead_code)]
     mode: TtsMode,
     /// Channel sender for queuing TTS messages
     sender: Sender<String>,
@@ -194,7 +200,7 @@ impl TtsHandler {
                                 match response.json::<TtsResponse>().await {
                                     Ok(tts_response) => {
                                         println!("TTS generated successfully: {} bytes, duration: {:.2}s", 
-                                               tts_response.metadata.size_bytes, 
+                                               tts_response.metadata.size_bytes.unwrap_or(0), 
                                                tts_response.metadata.duration.unwrap_or(0.0));
                                         
                                         // Decode base64 audio data and play it
