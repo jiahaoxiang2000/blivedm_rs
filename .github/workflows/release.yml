@@ -9,108 +9,16 @@ permissions:
   contents: write
   
 jobs:
-  build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            binary-suffix: ''
-            artifact-name: blivedm-linux-x86_64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            binary-suffix: ''
-            artifact-name: blivedm-macos-aarch64
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
-          profile: minimal
-
-      - name: Cache cargo registry 
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
-      - name: Cache cargo index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-index-
-
-      - name: Cache target directory
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-${{ matrix.target }}-target-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-target-
-
-      - name: Install system dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev 
-
-      - name: Install system dependencies (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          # macOS has built-in 'say' command, no additional TTS dependencies needed
-          echo "No additional dependencies needed for macOS"
-
-      - name: Build release binaries
-        run: |
-          cargo build --release --target ${{ matrix.target }} --bin danmu
-
-      - name: Create artifact directory
-        run: mkdir -p artifacts
-
-      - name: Copy binaries to artifacts
-        run: |
-          cp target/${{ matrix.target }}/release/danmu${{ matrix.binary-suffix }} artifacts/danmu${{ matrix.binary-suffix }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact-name }}
-          path: artifacts/
-
   release:
     name: Create GitHub Release
-    needs: [build]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Create release archives
-        run: |
-          for dir in blivedm-*; do
-            if [ -d "$dir" ]; then
-              cd "$dir"
-              tar -czf "../$dir.tar.gz" danmu 
-              cd ..
-            fi
-          done
+        with:
+          fetch-depth: 0
 
       - name: Get tag name
         id: tag_name
@@ -132,54 +40,59 @@ jobs:
             git log --pretty=format:"* %s (%an) [%h](https://github.com/${{ github.repository }}/commit/%H)" $PREVIOUS_TAG..$CURRENT_TAG >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            echo "## Binaries" >> $GITHUB_ENV
-            echo "Each archive contains the following binaries:" >> $GITHUB_ENV
-            echo "- \`danmu\`: Main CLI application for danmu streaming with TTS" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "## Available Downloads" >> $GITHUB_ENV
-            echo "- \`blivedm-linux-x86_64.tar.gz\`: Linux x86_64 binary" >> $GITHUB_ENV
-            echo "- \`blivedm-macos-aarch64.tar.gz\`: macOS Apple Silicon binary" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "## Usage" >> $GITHUB_ENV
+            echo "## Building from Source" >> $GITHUB_ENV
             echo "\`\`\`bash" >> $GITHUB_ENV
-            echo "# Extract the archive" >> $GITHUB_ENV
-            echo "tar -xzf blivedm-<platform>.tar.gz" >> $GITHUB_ENV
+            echo "# Clone the repository" >> $GITHUB_ENV
+            echo "git clone https://github.com/${{ github.repository }}.git" >> $GITHUB_ENV
+            echo "cd blivedm_rs" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            echo "# Run the main client" >> $GITHUB_ENV
-            echo "./danmu <SESSDATA> <ROOM_ID>" >> $GITHUB_ENV
+            echo "# Build the project" >> $GITHUB_ENV
+            echo "cargo build --release" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+            echo "# Run the danmu client" >> $GITHUB_ENV
+            echo "./target/release/danmu <SESSDATA> <ROOM_ID>" >> $GITHUB_ENV
             echo "\`\`\`" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "## System Requirements" >> $GITHUB_ENV
+            echo "- **Rust**: Latest stable version" >> $GITHUB_ENV
             echo "- **Linux**: \`espeak-ng\` for TTS support (\`sudo apt-get install espeak-ng\`)" >> $GITHUB_ENV
             echo "- **macOS**: Built-in \`say\` command (no additional dependencies)" >> $GITHUB_ENV
+            echo "- **Audio dependencies**: \`alsa-dev\` on Linux, \`pkg-config\`, \`libssl-dev\`" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           else
             echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
             echo "## Initial Release" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            git log --pretty=format:"* %s (%an) [%h](https://github.com/${{ github.repository }}/commit/%H)" >> $GITHUB_ENV
+            echo "### Features" >> $GITHUB_ENV
+            echo "- Bilibili live stream danmu (comment) monitoring" >> $GITHUB_ENV
+            echo "- Text-to-Speech (TTS) support with multiple backends" >> $GITHUB_ENV
+            echo "- REST API TTS integration with configurable voices" >> $GITHUB_ENV
+            echo "- Command-line TTS support (espeak-ng, say)" >> $GITHUB_ENV
+            echo "- Terminal display plugin for danmu messages" >> $GITHUB_ENV
+            echo "- Configurable audio volume control" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+            echo "### Recent Commits" >> $GITHUB_ENV
+            git log --pretty=format:"* %s (%an) [%h](https://github.com/${{ github.repository }}/commit/%H)" --max-count=10 >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            echo "## Binaries" >> $GITHUB_ENV
-            echo "Each archive contains the following binaries:" >> $GITHUB_ENV
-            echo "- \`danmu\`: Main CLI application for danmu streaming with TTS" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "## Available Downloads" >> $GITHUB_ENV
-            echo "- \`blivedm-linux-x86_64.tar.gz\`: Linux x86_64 binary" >> $GITHUB_ENV
-            echo "- \`blivedm-macos-aarch64.tar.gz\`: macOS Apple Silicon binary" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "## Usage" >> $GITHUB_ENV
+            echo "## Building from Source" >> $GITHUB_ENV
             echo "\`\`\`bash" >> $GITHUB_ENV
-            echo "# Extract the archive" >> $GITHUB_ENV
-            echo "tar -xzf blivedm-<platform>.tar.gz" >> $GITHUB_ENV
+            echo "# Clone the repository" >> $GITHUB_ENV
+            echo "git clone https://github.com/${{ github.repository }}.git" >> $GITHUB_ENV
+            echo "cd blivedm_rs" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            echo "# Run the main client" >> $GITHUB_ENV
-            echo "./danmu <SESSDATA> <ROOM_ID>" >> $GITHUB_ENV
+            echo "# Build the project" >> $GITHUB_ENV
+            echo "cargo build --release" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+            echo "# Run the danmu client" >> $GITHUB_ENV
+            echo "./target/release/danmu <SESSDATA> <ROOM_ID>" >> $GITHUB_ENV
             echo "\`\`\`" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "## System Requirements" >> $GITHUB_ENV
+            echo "- **Rust**: Latest stable version" >> $GITHUB_ENV
             echo "- **Linux**: \`espeak-ng\` for TTS support (\`sudo apt-get install espeak-ng\`)" >> $GITHUB_ENV
             echo "- **macOS**: Built-in \`say\` command (no additional dependencies)" >> $GITHUB_ENV
+            echo "- **Audio dependencies**: \`alsa-dev\` on Linux, \`pkg-config\`, \`libssl-dev\`" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           fi
 
@@ -189,9 +102,6 @@ jobs:
           tag_name: ${{ steps.tag_name.outputs.TAG_NAME }}
           name: Release ${{ steps.tag_name.outputs.TAG_NAME }}
           body: ${{ env.RELEASE_NOTES }}
-          files: |
-            blivedm-linux-x86_64.tar.gz
-            blivedm-macos-aarch64.tar.gz
           draft: false
           prerelease: false
         env:
