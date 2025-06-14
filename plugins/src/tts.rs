@@ -70,6 +70,8 @@ pub enum TtsMode {
         format: Option<String>,
         /// Sample rate for audio
         sample_rate: Option<u32>,
+        /// Audio volume (0.0 to 1.0, default is 1.0)
+        volume: Option<f32>,
     },
     /// Use local command-line TTS programs
     Command {
@@ -125,6 +127,11 @@ impl TtsHandler {
 
     /// Create a new TTS handler with REST API using default Chinese voice settings
     pub fn new_rest_api_default(server_url: String) -> Self {
+        Self::new_rest_api_default_with_volume(server_url, 1.0)
+    }
+
+    /// Create a new TTS handler with REST API using default Chinese voice settings and custom volume
+    pub fn new_rest_api_default_with_volume(server_url: String, volume: f32) -> Self {
         let mode = TtsMode::RestApi {
             server_url,
             voice: Some("zh-CN-XiaoxiaoNeural".to_string()),
@@ -132,6 +139,7 @@ impl TtsHandler {
             quality: Some("medium".to_string()),
             format: Some("wav".to_string()),
             sample_rate: Some(22050),
+            volume: Some(volume),
         };
         Self::new(mode)
     }
@@ -145,6 +153,27 @@ impl TtsHandler {
         format: Option<String>,
         sample_rate: Option<u32>,
     ) -> Self {
+        Self::new_rest_api_with_volume(
+            server_url,
+            voice,
+            backend,
+            quality,
+            format,
+            sample_rate,
+            None,
+        )
+    }
+
+    /// Create a new TTS handler with REST API and custom configuration including volume
+    pub fn new_rest_api_with_volume(
+        server_url: String,
+        voice: Option<String>,
+        backend: Option<String>,
+        quality: Option<String>,
+        format: Option<String>,
+        sample_rate: Option<u32>,
+        volume: Option<f32>,
+    ) -> Self {
         let mode = TtsMode::RestApi {
             server_url,
             voice,
@@ -152,6 +181,7 @@ impl TtsHandler {
             quality,
             format,
             sample_rate,
+            volume,
         };
         Self::new(mode)
     }
@@ -174,6 +204,7 @@ impl TtsHandler {
             quality,
             format,
             sample_rate,
+            volume,
         } = mode
         {
             // Create a tokio runtime for HTTP requests
@@ -222,6 +253,10 @@ impl TtsHandler {
                                                         // Create a new sink for this audio
                                                         let sink =
                                                             Sink::try_new(&stream_handle).unwrap();
+
+                                                        // Set volume if specified (default to 1.0 if not set)
+                                                        let audio_volume = volume.unwrap_or(1.0);
+                                                        sink.set_volume(audio_volume);
 
                                                         // Append the audio source to the sink
                                                         sink.append(source);
@@ -426,5 +461,30 @@ mod tests {
         assert!(json.contains("Hello world"));
         assert!(json.contains("zh-CN-XiaoxiaoNeural"));
         assert!(json.contains("edge"));
+    }
+
+    #[test]
+    fn test_tts_handler_with_volume() {
+        // Test with custom volume setting
+        let handler =
+            TtsHandler::new_rest_api_default_with_volume("http://localhost:8000".to_string(), 0.5);
+
+        let msg = BiliMessage::Danmu {
+            user: "test_user".to_string(),
+            text: "volume test".to_string(),
+        };
+        handler.handle(&msg);
+
+        // Test with custom configuration including volume
+        let handler_custom = TtsHandler::new_rest_api_with_volume(
+            "http://localhost:8000".to_string(),
+            Some("zh-CN-XiaoxiaoNeural".to_string()),
+            Some("edge".to_string()),
+            Some("high".to_string()),
+            Some("wav".to_string()),
+            Some(44100),
+            Some(0.8),
+        );
+        handler_custom.handle(&msg);
     }
 }
