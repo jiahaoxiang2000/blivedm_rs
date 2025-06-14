@@ -1,13 +1,14 @@
+use base64::{Engine as _, engine::general_purpose};
 use client::models::BiliMessage;
 use client::scheduler::EventHandler;
+use log::{debug, error, info, warn};
+use rodio::{Decoder, OutputStream, Sink};
 use serde::{Deserialize, Serialize};
+use std::io::Cursor;
+use std::process::Command;
 use std::sync::mpsc::{self, Sender};
 use std::thread;
 use std::thread::JoinHandle;
-use std::io::Cursor;
-use std::process::Command;
-use base64::{Engine as _, engine::general_purpose};
-use rodio::{Decoder, OutputStream, Sink};
 
 #[derive(Serialize, Debug)]
 struct TtsRequest {
@@ -80,12 +81,12 @@ pub enum TtsMode {
 }
 
 /// A plugin that sends Danmaku text to a TTS service and plays the audio sequentially.
-/// 
+///
 /// This handler supports two modes:
 /// 1. REST API mode: Sends text to a TTS REST API server, receives base64-encoded audio data,
 ///    decodes it and plays through the system's audio output
 /// 2. Command mode: Uses local command-line TTS programs (like `say` on macOS or `espeak-ng` on Linux)
-/// 
+///
 /// Messages are processed sequentially to avoid overlapping audio.
 pub struct TtsHandler {
     /// TTS configuration (either REST API or command-based)
@@ -101,29 +102,27 @@ impl TtsHandler {
     /// Create a new TTS handler with the specified mode
     pub fn new(mode: TtsMode) -> Self {
         let (sender, receiver) = mpsc::channel::<String>();
-        
+
         // Clone the mode for the worker thread
         let mode_clone = mode.clone();
-        
+
         // Spawn worker thread to process TTS queue sequentially
-        let worker_handle = thread::spawn(move || {
-            match &mode_clone {
-                TtsMode::RestApi { .. } => {
-                    Self::run_rest_api_worker(receiver, mode_clone);
-                },
-                TtsMode::Command { .. } => {
-                    Self::run_command_worker(receiver, mode_clone);
-                }
+        let worker_handle = thread::spawn(move || match &mode_clone {
+            TtsMode::RestApi { .. } => {
+                Self::run_rest_api_worker(receiver, mode_clone);
+            }
+            TtsMode::Command { .. } => {
+                Self::run_command_worker(receiver, mode_clone);
             }
         });
-        
+
         TtsHandler {
             mode,
             sender,
             _worker_handle: worker_handle,
         }
     }
-    
+
     /// Create a new TTS handler with REST API using default Chinese voice settings
     pub fn new_rest_api_default(server_url: String) -> Self {
         let mode = TtsMode::RestApi {
@@ -136,7 +135,7 @@ impl TtsHandler {
         };
         Self::new(mode)
     }
-    
+
     /// Create a new TTS handler with REST API and custom configuration
     pub fn new_rest_api(
         server_url: String,
@@ -156,7 +155,7 @@ impl TtsHandler {
         };
         Self::new(mode)
     }
-    
+
     /// Create a new TTS handler with command-line TTS
     pub fn new_command(tts_command: String, tts_args: Vec<String>) -> Self {
         let mode = TtsMode::Command {
@@ -165,17 +164,25 @@ impl TtsHandler {
         };
         Self::new(mode)
     }
-    
+
     /// Worker thread for REST API TTS processing
     fn run_rest_api_worker(receiver: std::sync::mpsc::Receiver<String>, mode: TtsMode) {
-        if let TtsMode::RestApi { server_url, voice, backend, quality, format, sample_rate } = mode {
+        if let TtsMode::RestApi {
+            server_url,
+            voice,
+            backend,
+            quality,
+            format,
+            sample_rate,
+        } = mode
+        {
             // Create a tokio runtime for HTTP requests
             let rt = tokio::runtime::Runtime::new().unwrap();
             let client = reqwest::Client::new();
-            
+
             // Initialize audio output stream (this will be reused for all audio playback)
             let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-            
+
             while let Ok(message) = receiver.recv() {
                 let request = TtsRequest {
                     text: message,
@@ -185,7 +192,7 @@ impl TtsHandler {
                     format: format.clone(),
                     sample_rate,
                 };
-                
+
                 // Make HTTP request to TTS service
                 rt.block_on(async {
                     match client
@@ -199,73 +206,83 @@ impl TtsHandler {
                             if response.status().is_success() {
                                 match response.json::<TtsResponse>().await {
                                     Ok(tts_response) => {
-                                        println!("TTS generated successfully: {} bytes, duration: {:.2}s", 
-                                               tts_response.metadata.size_bytes.unwrap_or(0), 
-                                               tts_response.metadata.duration.unwrap_or(0.0));
-                                        
+                                        info!("TTS generated successfully");
+
                                         // Decode base64 audio data and play it
-                                        match general_purpose::STANDARD.decode(&tts_response.audio_data) {
+                                        match general_purpose::STANDARD
+                                            .decode(&tts_response.audio_data)
+                                        {
                                             Ok(audio_bytes) => {
                                                 // Create a cursor from the audio bytes
                                                 let cursor = Cursor::new(audio_bytes);
-                                                
+
                                                 // Create a decoder for the audio format
                                                 match Decoder::new(cursor) {
                                                     Ok(source) => {
                                                         // Create a new sink for this audio
-                                                        let sink = Sink::try_new(&stream_handle).unwrap();
-                                                        
+                                                        let sink =
+                                                            Sink::try_new(&stream_handle).unwrap();
+
                                                         // Append the audio source to the sink
                                                         sink.append(source);
-                                                        
+
                                                         // Wait for the audio to finish playing
                                                         sink.sleep_until_end();
-                                                        
-                                                        println!("Audio playback completed");
+
+                                                        debug!("Audio playback completed");
                                                     }
-                                                    Err(e) => eprintln!("Failed to decode audio format: {}", e),
+                                                    Err(e) => error!(
+                                                        "Failed to decode audio format: {}",
+                                                        e
+                                                    ),
                                                 }
                                             }
-                                            Err(e) => eprintln!("Failed to decode base64 audio data: {}", e),
+                                            Err(e) => {
+                                                error!("Failed to decode base64 audio data: {}", e)
+                                            }
                                         }
                                     }
-                                    Err(e) => eprintln!("Failed to parse TTS response: {}", e),
+                                    Err(e) => error!("Failed to parse TTS response: {}", e),
                                 }
                             } else {
-                                eprintln!("TTS request failed with status: {}", response.status());
+                                warn!("TTS request failed with status: {}", response.status());
                             }
                         }
-                        Err(e) => eprintln!("Failed to send TTS request: {}", e),
+                        Err(e) => error!("Failed to send TTS request: {}", e),
                     }
                 });
             }
         }
     }
-    
+
     /// Worker thread for command-line TTS processing
     fn run_command_worker(receiver: std::sync::mpsc::Receiver<String>, mode: TtsMode) {
-        if let TtsMode::Command { tts_command, tts_args } = mode {
+        if let TtsMode::Command {
+            tts_command,
+            tts_args,
+        } = mode
+        {
             while let Ok(message) = receiver.recv() {
                 let mut command = Command::new(&tts_command);
                 for arg in &tts_args {
                     command.arg(arg);
                 }
-                
+
                 // Execute TTS command and wait for it to complete
                 match command.arg(&message).status() {
                     Ok(status) => {
                         if status.success() {
-                            println!("TTS command completed successfully");
+                            debug!("TTS command completed successfully");
                         } else {
-                            eprintln!("TTS command failed with status: {}", status);
+                            warn!("TTS command failed with status: {}", status);
                         }
                     }
-                    Err(e) => eprintln!("Failed to execute TTS command: {}", e),
+                    Err(e) => error!("Failed to execute TTS command: {}", e),
                 }
             }
         }
     }
-    
+
     /// Legacy method - kept for backward compatibility
     #[deprecated(note = "Use new_rest_api_default instead")]
     pub fn new_default(server_url: String) -> Self {
@@ -293,7 +310,7 @@ mod tests {
     fn test_tts_handler_danmu() {
         // Test with a mock server URL (won't actually make requests in this test)
         let handler = TtsHandler::new_rest_api_default("http://localhost:8000".to_string());
-        
+
         let text = "您好，欢迎来到直播间。".to_string();
         let msg = BiliMessage::Danmu {
             user: "测试用户".to_string(),
@@ -312,7 +329,7 @@ mod tests {
             Some("wav".to_string()),
             Some(44100),
         );
-        
+
         let msg = BiliMessage::Danmu {
             user: "test_user".to_string(),
             text: "hello world".to_string(),
@@ -323,17 +340,17 @@ mod tests {
     #[test]
     fn test_tts_handler_sequential_processing() {
         use std::time::Duration;
-        
+
         // Use default configuration for testing
         let handler = TtsHandler::new_rest_api_default("http://localhost:8000".to_string());
-        
+
         // Send multiple messages quickly
         let messages = vec![
             ("User1", "First message"),
-            ("User2", "Second message"), 
+            ("User2", "Second message"),
             ("User3", "Third message"),
         ];
-        
+
         for (user, text) in messages {
             let msg = BiliMessage::Danmu {
                 user: user.to_string(),
@@ -341,10 +358,10 @@ mod tests {
             };
             handler.handle(&msg);
         }
-        
+
         // Give the worker thread some time to process the queue
         std::thread::sleep(Duration::from_millis(100));
-        
+
         // The test passes if no panic occurs - the sequential processing
         // is ensured by the worker thread design
     }
@@ -353,13 +370,13 @@ mod tests {
     fn test_tts_handler_command_mode() {
         // Test command-based TTS (cross-platform using echo)
         let handler = TtsHandler::new_command("echo".to_string(), vec![]);
-        
+
         let msg = BiliMessage::Danmu {
             user: "test_user".to_string(),
             text: "test message".to_string(),
         };
         handler.handle(&msg);
-        
+
         // Give the worker thread some time to process the message
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
@@ -371,7 +388,7 @@ mod tests {
             "say".to_string(),
             vec!["-v".to_string(), "Mei-Jia".to_string()],
         );
-        
+
         let msg = BiliMessage::Danmu {
             user: "用户".to_string(),
             text: "你好".to_string(),
@@ -386,7 +403,7 @@ mod tests {
             "espeak-ng".to_string(),
             vec!["-v".to_string(), "cmn".to_string()],
         );
-        
+
         let msg = BiliMessage::Danmu {
             user: "用户".to_string(),
             text: "你好".to_string(),
@@ -394,7 +411,7 @@ mod tests {
         handler.handle(&msg);
     }
 
-    #[test] 
+    #[test]
     fn test_tts_request_serialization() {
         let request = TtsRequest {
             text: "Hello world".to_string(),
@@ -404,7 +421,7 @@ mod tests {
             format: Some("wav".to_string()),
             sample_rate: Some(22050),
         };
-        
+
         let json = serde_json::to_string(&request).unwrap();
         assert!(json.contains("Hello world"));
         assert!(json.contains("zh-CN-XiaoxiaoNeural"));
