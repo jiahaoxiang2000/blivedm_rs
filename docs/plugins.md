@@ -49,7 +49,11 @@ flowchart LR
 
 ### Usage
 
-Add the TTS plugin handler to your scheduler. The TTS plugin now uses a REST API service for text-to-speech conversion:
+The TTS plugin supports two modes of operation:
+
+#### 1. REST API Mode (Recommended)
+
+Add the TTS plugin handler using the REST API service for high-quality neural voices:
 
 ```rust
 use plugins::{tts_handler_default, tts_handler};
@@ -74,6 +78,35 @@ let tts = tts_handler(
     Some("wav".to_string()),                   // Format
     Some(44100),                               // Sample rate
 );
+scheduler.add_sequential_handler(tts);
+```
+
+#### 2. Command Mode (Simple Setup)
+
+Use local command-line TTS programs for simple setups without external dependencies:
+
+```rust
+use plugins::tts_handler_command;
+use client::scheduler::Scheduler;
+
+let mut scheduler = Scheduler::new();
+
+// For macOS with Chinese voice:
+let tts = tts_handler_command(
+    "say".to_string(),
+    vec!["-v".to_string(), "Mei-Jia".to_string()]
+);
+scheduler.add_sequential_handler(tts);
+
+// For Linux with espeak-ng:
+let tts = tts_handler_command(
+    "espeak-ng".to_string(),
+    vec!["-v".to_string(), "cmn".to_string()]
+);
+scheduler.add_sequential_handler(tts);
+
+// For testing with echo (cross-platform):
+let tts = tts_handler_command("echo".to_string(), vec![]);
 scheduler.add_sequential_handler(tts);
 ```
 
@@ -112,25 +145,19 @@ The danmu-tts server supports multiple TTS backends and provides high-quality ne
 
 ### Implementation
 
-The TTS plugin has been redesigned to use a REST API service instead of local TTS commands. Key features include:
+The TTS plugin supports two distinct modes of operation, each with its own advantages:
 
-#### REST API Integration
-- Sends HTTP POST requests to `/tts` endpoint
-- Supports JSON request/response format
-- Configurable voice, backend, quality, and format options
-- Base64 encoded audio data response
+#### Mode 1: REST API Integration
+The modern approach using the danmu-tts server:
 
-#### Sequential Processing
-- Uses a worker thread with message queue for sequential TTS processing
-- Prevents audio overlap and ensures proper message ordering
-- Non-blocking for the main event loop
+- **HTTP Communication**: Sends POST requests to `/tts` endpoint
+- **JSON Protocol**: Supports structured request/response format
+- **Neural Voices**: Access to high-quality voice synthesis
+- **Configurable Options**: Voice, backend, quality, and format selection
+- **Audio Streaming**: Base64 encoded audio data response
+- **Multiple Backends**: Edge TTS, XTTS, Piper support
 
-#### Supported TTS Backends
-- **Edge TTS**: Microsoft's neural voices (recommended for Chinese)
-- **XTTS**: High-quality cloned voices
-- **Piper**: Fast local inference
-
-#### Configuration Options
+**Configuration Options:**
 - `server_url`: Base URL of the TTS server
 - `voice`: Voice ID (e.g., "zh-CN-XiaoxiaoNeural")
 - `backend`: TTS backend ("edge", "xtts", "piper")
@@ -138,9 +165,41 @@ The TTS plugin has been redesigned to use a REST API service instead of local TT
 - `format`: Audio format ("wav")
 - `sample_rate`: Sample rate (22050, 44100, etc.)
 
-#### Error Handling
-- Graceful handling of network errors
-- Logging of TTS generation metadata
-- Continuation on individual request failures
+#### Mode 2: Command-Line Integration
+The traditional approach using local TTS programs:
 
-This allows you to add voice feedback to your live room, making interactions more engaging and accessible.
+- **Direct Execution**: Spawns local TTS processes
+- **Cross-Platform**: Works with system TTS commands
+- **No Network**: Completely offline operation
+- **Simple Setup**: No external server required
+- **Lightweight**: Minimal resource overhead
+
+**Supported Commands:**
+- **macOS**: `say` command with voice selection
+- **Linux**: `espeak-ng`, `festival`, or similar TTS engines
+- **Custom**: Any command-line TTS program
+
+#### Common Features
+Both modes share these implementation characteristics:
+
+- **Sequential Processing**: Worker thread with message queue prevents audio overlap
+- **Message Ordering**: Ensures proper sequence of TTS playback
+- **Non-blocking**: Main event loop remains responsive during TTS processing
+- **Error Handling**: Graceful handling of failures with logging
+- **Event Integration**: Seamless integration with the scheduler system
+
+#### Choosing the Right Mode
+
+**Use REST API Mode when:**
+- You want high-quality neural voices
+- Multiple language/voice options are needed
+- You can run the danmu-tts server
+- Network connectivity is reliable
+
+**Use Command Mode when:**
+- Simple setup is preferred
+- No external dependencies allowed
+- Offline operation is required
+- Basic TTS functionality is sufficient
+
+This dual-mode approach allows you to add voice feedback to your live room with the flexibility to choose the implementation that best fits your needs and infrastructure.

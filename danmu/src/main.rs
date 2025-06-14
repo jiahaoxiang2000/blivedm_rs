@@ -77,11 +77,31 @@ fn main() {
     let terminal_handler = Arc::new(TerminalDisplayHandler);
     scheduler.add_sequential_handler(terminal_handler);
 
-    // Add the TTS handler using REST API
+    // Add the TTS handler - supports both REST API and command-based approaches
+
+    // Option 1: Use REST API for advanced neural voices (recommended for production)
     // Make sure the danmu-tts server is running at http://192.168.71.202:8000
     // The handler will automatically decode base64 audio data and play it
     let tts_handler = tts_handler_default("http://192.168.71.202:8000".to_string());
     scheduler.add_sequential_handler(tts_handler);
+
+    // Option 2: Use local command-line TTS (fallback or simple setup)
+    // Uncomment one of the following based on your platform:
+
+    // For macOS with Chinese voice:
+    // use plugins::tts_handler_command;
+    // let tts_handler = tts_handler_command("say".to_string(), vec!["-v".to_string(), "Mei-Jia".to_string()]);
+    // scheduler.add_sequential_handler(tts_handler);
+
+    // For Linux with espeak-ng:
+    // use plugins::tts_handler_command;
+    // let tts_handler = tts_handler_command("espeak-ng".to_string(), vec!["-v".to_string(), "cmn".to_string()]);
+    // scheduler.add_sequential_handler(tts_handler);
+
+    // For other platforms (testing):
+    // use plugins::tts_handler_command;
+    // let tts_handler = tts_handler_command("echo".to_string(), vec![]);
+    // scheduler.add_sequential_handler(tts_handler);
 
     // create a thread to process the rx channel messages using tokio runtime and pass to scheduler
     let rt = Runtime::new().unwrap();

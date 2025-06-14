@@ -5,6 +5,7 @@ use std::sync::mpsc::{self, Sender};
 use std::thread;
 use std::thread::JoinHandle;
 use std::io::Cursor;
+use std::process::Command;
 use base64::{Engine as _, engine::general_purpose};
 use rodio::{Decoder, OutputStream, Sink};
 
@@ -27,48 +28,63 @@ struct TtsRequest {
 struct TtsResponse {
     audio_data: String,
     metadata: TtsMetadata,
+    #[allow(dead_code)]
     cached: bool,
 }
 
 #[derive(Deserialize, Debug)]
 struct TtsMetadata {
-    #[serde(default)]
+    #[allow(dead_code)]
     backend: String,
-    #[serde(default)]
+    #[allow(dead_code)]
     voice: String,
     duration: Option<f64>,
-    #[serde(default)]
+    #[allow(dead_code)]
     sample_rate: u32,
-    #[serde(default)]
+    #[allow(dead_code)]
     format: String,
-    #[serde(default)]
+    #[allow(dead_code)]
     size_bytes: u64,
 }
 
-/// A plugin that sends Danmaku text to a TTS REST API service and plays the audio sequentially.
+/// TTS backend configuration
+#[derive(Debug, Clone)]
+pub enum TtsMode {
+    /// Use REST API for TTS with advanced neural voices
+    RestApi {
+        /// The base URL of the TTS server (e.g., "http://localhost:8000")
+        server_url: String,
+        /// Voice ID to use for TTS (e.g., "zh-CN-XiaoxiaoNeural")
+        voice: Option<String>,
+        /// TTS backend to use (e.g., "edge", "xtts", "piper")
+        backend: Option<String>,
+        /// Audio quality ("low", "medium", "high")
+        quality: Option<String>,
+        /// Audio format (e.g., "wav")
+        format: Option<String>,
+        /// Sample rate for audio
+        sample_rate: Option<u32>,
+    },
+    /// Use local command-line TTS programs
+    Command {
+        /// The TTS command to use (e.g., "say" on macOS, "espeak-ng" on Linux)
+        tts_command: String,
+        /// Optional extra arguments for the TTS command (e.g., ["-v", "SinJi"])
+        tts_args: Vec<String>,
+    },
+}
+
+/// A plugin that sends Danmaku text to a TTS service and plays the audio sequentially.
 /// 
-/// This handler:
-/// 1. Receives Danmaku messages through the EventHandler interface
-/// 2. Sends the text to a TTS REST API server  
-/// 3. Receives base64-encoded audio data in the response
-/// 4. Decodes the audio data and plays it through the system's audio output
-/// 5. Processes messages sequentially to avoid overlapping audio
+/// This handler supports two modes:
+/// 1. REST API mode: Sends text to a TTS REST API server, receives base64-encoded audio data,
+///    decodes it and plays through the system's audio output
+/// 2. Command mode: Uses local command-line TTS programs (like `say` on macOS or `espeak-ng` on Linux)
 /// 
-/// The TTS server should accept POST requests to `/tts` with JSON payload containing
-/// the text and optional configuration parameters, and return audio data in base64 format.
+/// Messages are processed sequentially to avoid overlapping audio.
 pub struct TtsHandler {
-    /// The base URL of the TTS server (e.g., "http://localhost:8000")
-    pub server_url: String,
-    /// Voice ID to use for TTS (e.g., "zh-CN-XiaoxiaoNeural")
-    pub voice: Option<String>,
-    /// TTS backend to use (e.g., "edge", "xtts", "piper")
-    pub backend: Option<String>,
-    /// Audio quality ("low", "medium", "high")
-    pub quality: Option<String>,
-    /// Audio format (e.g., "wav")
-    pub format: Option<String>,
-    /// Sample rate for audio
-    pub sample_rate: Option<u32>,
+    /// TTS configuration (either REST API or command-based)
+    mode: TtsMode,
     /// Channel sender for queuing TTS messages
     sender: Sender<String>,
     /// Background thread handle for TTS processing
@@ -76,7 +92,47 @@ pub struct TtsHandler {
 }
 
 impl TtsHandler {
-    pub fn new(
+    /// Create a new TTS handler with the specified mode
+    pub fn new(mode: TtsMode) -> Self {
+        let (sender, receiver) = mpsc::channel::<String>();
+        
+        // Clone the mode for the worker thread
+        let mode_clone = mode.clone();
+        
+        // Spawn worker thread to process TTS queue sequentially
+        let worker_handle = thread::spawn(move || {
+            match &mode_clone {
+                TtsMode::RestApi { .. } => {
+                    Self::run_rest_api_worker(receiver, mode_clone);
+                },
+                TtsMode::Command { .. } => {
+                    Self::run_command_worker(receiver, mode_clone);
+                }
+            }
+        });
+        
+        TtsHandler {
+            mode,
+            sender,
+            _worker_handle: worker_handle,
+        }
+    }
+    
+    /// Create a new TTS handler with REST API using default Chinese voice settings
+    pub fn new_rest_api_default(server_url: String) -> Self {
+        let mode = TtsMode::RestApi {
+            server_url,
+            voice: Some("zh-CN-XiaoxiaoNeural".to_string()),
+            backend: Some("edge".to_string()),
+            quality: Some("medium".to_string()),
+            format: Some("wav".to_string()),
+            sample_rate: Some(22050),
+        };
+        Self::new(mode)
+    }
+    
+    /// Create a new TTS handler with REST API and custom configuration
+    pub fn new_rest_api(
         server_url: String,
         voice: Option<String>,
         backend: Option<String>,
@@ -84,18 +140,29 @@ impl TtsHandler {
         format: Option<String>,
         sample_rate: Option<u32>,
     ) -> Self {
-        let (sender, receiver) = mpsc::channel::<String>();
-        
-        // Clone configuration for the worker thread
-        let url = server_url.clone();
-        let voice_config = voice.clone();
-        let backend_config = backend.clone();
-        let quality_config = quality.clone();
-        let format_config = format.clone();
-        let sample_rate_config = sample_rate;
-        
-        // Spawn worker thread to process TTS queue sequentially
-        let worker_handle = thread::spawn(move || {
+        let mode = TtsMode::RestApi {
+            server_url,
+            voice,
+            backend,
+            quality,
+            format,
+            sample_rate,
+        };
+        Self::new(mode)
+    }
+    
+    /// Create a new TTS handler with command-line TTS
+    pub fn new_command(tts_command: String, tts_args: Vec<String>) -> Self {
+        let mode = TtsMode::Command {
+            tts_command,
+            tts_args,
+        };
+        Self::new(mode)
+    }
+    
+    /// Worker thread for REST API TTS processing
+    fn run_rest_api_worker(receiver: std::sync::mpsc::Receiver<String>, mode: TtsMode) {
+        if let TtsMode::RestApi { server_url, voice, backend, quality, format, sample_rate } = mode {
             // Create a tokio runtime for HTTP requests
             let rt = tokio::runtime::Runtime::new().unwrap();
             let client = reqwest::Client::new();
@@ -106,17 +173,17 @@ impl TtsHandler {
             while let Ok(message) = receiver.recv() {
                 let request = TtsRequest {
                     text: message,
-                    voice: voice_config.clone(),
-                    backend: backend_config.clone(),
-                    quality: quality_config.clone(),
-                    format: format_config.clone(),
-                    sample_rate: sample_rate_config,
+                    voice: voice.clone(),
+                    backend: backend.clone(),
+                    quality: quality.clone(),
+                    format: format.clone(),
+                    sample_rate,
                 };
                 
                 // Make HTTP request to TTS service
                 rt.block_on(async {
                     match client
-                        .post(&format!("{}/tts", url))
+                        .post(&format!("{}/tts", server_url))
                         .header("Content-Type", "application/json")
                         .json(&request)
                         .send()
@@ -166,30 +233,37 @@ impl TtsHandler {
                     }
                 });
             }
-        });
-        
-        TtsHandler {
-            server_url,
-            voice,
-            backend,
-            quality,
-            format,
-            sample_rate,
-            sender,
-            _worker_handle: worker_handle,
         }
     }
     
-    /// Create a new TtsHandler with default Chinese voice settings
+    /// Worker thread for command-line TTS processing
+    fn run_command_worker(receiver: std::sync::mpsc::Receiver<String>, mode: TtsMode) {
+        if let TtsMode::Command { tts_command, tts_args } = mode {
+            while let Ok(message) = receiver.recv() {
+                let mut command = Command::new(&tts_command);
+                for arg in &tts_args {
+                    command.arg(arg);
+                }
+                
+                // Execute TTS command and wait for it to complete
+                match command.arg(&message).status() {
+                    Ok(status) => {
+                        if status.success() {
+                            println!("TTS command completed successfully");
+                        } else {
+                            eprintln!("TTS command failed with status: {}", status);
+                        }
+                    }
+                    Err(e) => eprintln!("Failed to execute TTS command: {}", e),
+                }
+            }
+        }
+    }
+    
+    /// Legacy method - kept for backward compatibility
+    #[deprecated(note = "Use new_rest_api_default instead")]
     pub fn new_default(server_url: String) -> Self {
-        Self::new(
-            server_url,
-            Some("zh-CN-XiaoxiaoNeural".to_string()),
-            Some("edge".to_string()),
-            Some("medium".to_string()),
-            Some("wav".to_string()),
-            Some(22050),
-        )
+        Self::new_rest_api_default(server_url)
     }
 }
 
@@ -212,7 +286,7 @@ mod tests {
     #[test]
     fn test_tts_handler_danmu() {
         // Test with a mock server URL (won't actually make requests in this test)
-        let handler = TtsHandler::new_default("http://localhost:8000".to_string());
+        let handler = TtsHandler::new_rest_api_default("http://localhost:8000".to_string());
         
         let text = "您好，欢迎来到直播间。".to_string();
         let msg = BiliMessage::Danmu {
@@ -224,7 +298,7 @@ mod tests {
 
     #[test]
     fn test_tts_handler_custom_config() {
-        let handler = TtsHandler::new(
+        let handler = TtsHandler::new_rest_api(
             "http://localhost:8000".to_string(),
             Some("zh-CN-XiaoxiaoNeural".to_string()),
             Some("edge".to_string()),
@@ -245,7 +319,7 @@ mod tests {
         use std::time::Duration;
         
         // Use default configuration for testing
-        let handler = TtsHandler::new_default("http://localhost:8000".to_string());
+        let handler = TtsHandler::new_rest_api_default("http://localhost:8000".to_string());
         
         // Send multiple messages quickly
         let messages = vec![
@@ -267,6 +341,51 @@ mod tests {
         
         // The test passes if no panic occurs - the sequential processing
         // is ensured by the worker thread design
+    }
+
+    #[test]
+    fn test_tts_handler_command_mode() {
+        // Test command-based TTS (cross-platform using echo)
+        let handler = TtsHandler::new_command("echo".to_string(), vec![]);
+        
+        let msg = BiliMessage::Danmu {
+            user: "test_user".to_string(),
+            text: "test message".to_string(),
+        };
+        handler.handle(&msg);
+        
+        // Give the worker thread some time to process the message
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_tts_handler_macos_voice() {
+        let handler = TtsHandler::new_command(
+            "say".to_string(),
+            vec!["-v".to_string(), "Mei-Jia".to_string()],
+        );
+        
+        let msg = BiliMessage::Danmu {
+            user: "用户".to_string(),
+            text: "你好".to_string(),
+        };
+        handler.handle(&msg);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn test_tts_handler_linux_voice() {
+        let handler = TtsHandler::new_command(
+            "espeak-ng".to_string(),
+            vec!["-v".to_string(), "cmn".to_string()],
+        );
+        
+        let msg = BiliMessage::Danmu {
+            user: "用户".to_string(),
+            text: "你好".to_string(),
+        };
+        handler.handle(&msg);
     }
 
     #[test] 
