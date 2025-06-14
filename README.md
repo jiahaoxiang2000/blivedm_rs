@@ -4,24 +4,32 @@ Bilibili live room DM (Danmaku) websocket client library for Rust.
 
 ## Quick Start
 
-### Download Pre-built Binaries
-
-Download the latest release for your platform from the [Releases page](https://github.com/jiahaoxiang2000/blivedm_rs/releases):
-
-- **Linux x86_64**: `blivedm-linux-x86_64.tar.gz`
-- **macOS Intel**: `blivedm-macos-x86_64.tar.gz`
-- **macOS Apple Silicon**: `blivedm-macos-aarch64.tar.gz`
+### Building from Source
 
 ```bash
-# Extract and run
-tar -xzf blivedm-<platform>.tar.gz
-./danmu <SESSDATA> <ROOM_ID>
+# Clone the repository
+git clone https://github.com/jiahaoxiang2000/blivedm_rs.git
+cd blivedm_rs
+
+# Build the project
+cargo build --release
+
+# Run the danmu client
+./target/release/danmu <SESSDATA> <ROOM_ID>
 ```
 
 ### System Requirements
 
-- **Linux**: Install `espeak-ng` for TTS support: `sudo apt-get install espeak-ng`
-- **macOS**: No additional dependencies (uses built-in `say` command)
+- **Rust**: Latest stable version
+- **Linux**: 
+  - Audio support: `sudo apt-get install libasound2-dev`
+  - Build tools: `sudo apt-get install pkg-config libssl-dev`
+  - Optional TTS: `sudo apt-get install espeak-ng`
+- **macOS**: No additional dependencies (uses built-in `say` command for TTS)
+
+### Pre-built Binaries
+
+Pre-built binaries will be available in future releases. Currently, please build from source using the instructions above.
 
 ### TTS Server Setup (Optional)
 
@@ -35,6 +43,25 @@ cd danmu-tts
 ```
 
 The TTS server provides high-quality neural voices and multiple TTS backends. See the [danmu-tts repository](https://github.com/jiahaoxiang2000/danmu-tts) for detailed setup instructions.
+
+### Usage Examples
+
+```bash
+# Basic usage (terminal display only)
+./target/release/danmu your_sessdata 12345
+
+# With TTS REST API server
+./target/release/danmu your_sessdata 12345 --tts-server http://localhost:8000 --tts-volume 0.7
+
+# With local TTS (macOS)
+./target/release/danmu your_sessdata 12345 --tts-command say --tts-args "-v,Mei-Jia"
+
+# With local TTS (Linux)
+./target/release/danmu your_sessdata 12345 --tts-command espeak-ng --tts-args "-v,cmn"
+
+# Show all available options
+./target/release/danmu --help
+```
 
 ### Building from Source
 
