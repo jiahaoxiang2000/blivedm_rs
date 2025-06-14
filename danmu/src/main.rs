@@ -1,33 +1,84 @@
 // src/main.rs
 // Standalone binary to test integration of the terminal display plugin with the BiliLiveClient
 
+use clap::Parser;
 use client::scheduler::Scheduler;
 use client::websocket::BiliLiveClient;
 use futures::channel::mpsc;
 use futures::stream::StreamExt;
 use plugins::terminal_display::TerminalDisplayHandler;
-use plugins::tts_handler_default;
+use plugins::tts::TtsHandler;
 use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 
-fn main() {
-    // Load SESSDATA and room_id from CLI args or environment variables
-    let args: Vec<String> = env::args().collect();
-    let sessdata = if args.len() > 1 {
-        args[1].clone()
-    } else {
-        env::var("SESSDATA").unwrap_or_else(|_| "dummy_sessdata".to_string())
-    };
-    let room_id = if args.len() > 2 {
-        args[2].clone()
-    } else {
-        env::var("ROOM_ID").unwrap_or_else(|_| "24779526".to_string())
-    };
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// SESSDATA for Bilibili authentication
+    #[arg(value_name = "SESSDATA")]
+    sessdata: Option<String>,
 
-    if env::var("DEBUG").unwrap_or_default() == "1" {
+    /// Room ID to connect to
+    #[arg(value_name = "ROOM_ID")]
+    room_id: Option<String>,
+
+    /// TTS REST API server URL
+    #[arg(long, value_name = "URL")]
+    tts_server: Option<String>,
+
+    /// TTS voice ID (e.g., "zh-CN-XiaoxiaoNeural")
+    #[arg(long, value_name = "VOICE")]
+    tts_voice: Option<String>,
+
+    /// TTS backend ("edge", "xtts", "piper")
+    #[arg(long, value_name = "BACKEND")]
+    tts_backend: Option<String>,
+
+    /// TTS audio quality ("low", "medium", "high")
+    #[arg(long, value_name = "QUALITY")]
+    tts_quality: Option<String>,
+
+    /// TTS audio format (e.g., "wav")
+    #[arg(long, value_name = "FORMAT")]
+    tts_format: Option<String>,
+
+    /// TTS sample rate (e.g., 22050, 44100)
+    #[arg(long, value_name = "RATE")]
+    tts_sample_rate: Option<u32>,
+
+    /// TTS audio volume (0.0 to 1.0)
+    #[arg(long, value_name = "VOLUME")]
+    tts_volume: Option<f32>,
+
+    /// Local TTS command (e.g., "say", "espeak-ng")
+    #[arg(long, value_name = "COMMAND")]
+    tts_command: Option<String>,
+
+    /// Comma-separated arguments for TTS command
+    #[arg(long, value_name = "ARGS")]
+    tts_args: Option<String>,
+
+    /// Enable debug logging
+    #[arg(long)]
+    debug: bool,
+}
+
+fn main() {
+    let args = Args::parse();
+
+    // Load SESSDATA and room_id from CLI args or environment variables
+    let sessdata = args
+        .sessdata
+        .unwrap_or_else(|| env::var("SESSDATA").unwrap_or_else(|_| "dummy_sessdata".to_string()));
+    let room_id = args
+        .room_id
+        .unwrap_or_else(|| env::var("ROOM_ID").unwrap_or_else(|_| "24779526".to_string()));
+
+    // Initialize logging
+    if args.debug || env::var("DEBUG").unwrap_or_default() == "1" {
         let _ = env_logger::builder()
             .is_test(true)
             .filter_level(log::LevelFilter::Debug)
@@ -77,31 +128,40 @@ fn main() {
     let terminal_handler = Arc::new(TerminalDisplayHandler);
     scheduler.add_sequential_handler(terminal_handler);
 
-    // Add the TTS handler - supports both REST API and command-based approaches
+    // Configure TTS based on command-line arguments
+    if let Some(server_url) = args.tts_server {
+        // REST API TTS configuration
+        let tts_handler = Arc::new(TtsHandler::new_rest_api_with_volume(
+            server_url,
+            args.tts_voice,
+            args.tts_backend,
+            args.tts_quality,
+            args.tts_format,
+            args.tts_sample_rate,
+            args.tts_volume,
+        ));
+        scheduler.add_sequential_handler(tts_handler);
+        println!("TTS configured with REST API server");
+    } else if let Some(tts_command) = args.tts_command {
+        // Command-line TTS configuration
+        let tts_args = args
+            .tts_args
+            .map(|s| s.split(',').map(|s| s.to_string()).collect())
+            .unwrap_or_default();
+        let tts_handler = Arc::new(TtsHandler::new_command(tts_command, tts_args));
+        scheduler.add_sequential_handler(tts_handler);
+        println!("TTS configured with local command");
+    } else {
+        println!("No TTS configuration provided. Use --tts-server or --tts-command to enable TTS.");
+    }
 
-    // Option 1: Use REST API for advanced neural voices (recommended for production)
-    // Make sure the danmu-tts server is running at http://192.168.71.202:8000
-    // The handler will automatically decode base64 audio data and play it
-    let tts_handler = tts_handler_default("http://192.168.71.202:8000".to_string());
-    scheduler.add_sequential_handler(tts_handler);
-
-    // Option 2: Use local command-line TTS (fallback or simple setup)
-    // Uncomment one of the following based on your platform:
-
-    // For macOS with Chinese voice:
-    // use plugins::tts_handler_command;
-    // let tts_handler = tts_handler_command("say".to_string(), vec!["-v".to_string(), "Mei-Jia".to_string()]);
-    // scheduler.add_sequential_handler(tts_handler);
-
-    // For Linux with espeak-ng:
-    // use plugins::tts_handler_command;
-    // let tts_handler = tts_handler_command("espeak-ng".to_string(), vec!["-v".to_string(), "cmn".to_string()]);
-    // scheduler.add_sequential_handler(tts_handler);
-
-    // For other platforms (testing):
-    // use plugins::tts_handler_command;
-    // let tts_handler = tts_handler_command("echo".to_string(), vec![]);
-    // scheduler.add_sequential_handler(tts_handler);
+    // Print configuration information
+    println!("Bilibili Danmu Client");
+    println!("Connected to room: {}", room_id);
+    println!(
+        "Using SESSDATA: {}...",
+        &sessdata.chars().take(10).collect::<String>()
+    );
 
     // create a thread to process the rx channel messages using tokio runtime and pass to scheduler
     let rt = Runtime::new().unwrap();
