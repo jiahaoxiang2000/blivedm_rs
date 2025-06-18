@@ -17,7 +17,7 @@ use tokio::runtime::Runtime;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// SESSDATA for Bilibili authentication
+    /// SESSDATA for Bilibili authentication (optional - will auto-detect from browser if not provided)
     #[arg(value_name = "SESSDATA")]
     sessdata: Option<String>,
 
@@ -70,9 +70,19 @@ fn main() {
     let args = Args::parse();
 
     // Load SESSDATA and room_id from CLI args or environment variables
-    let sessdata = args
-        .sessdata
-        .unwrap_or_else(|| env::var("SESSDATA").unwrap_or_else(|_| "dummy_sessdata".to_string()));
+    let sessdata = args.sessdata.or_else(|| {
+        let env_sessdata = env::var("SESSDATA").ok();
+        if let Some(s) = &env_sessdata {
+            if s.is_empty() || s == "dummy_sessdata" {
+                None
+            } else {
+                env_sessdata
+            }
+        } else {
+            None
+        }
+    });
+    
     let room_id = args
         .room_id
         .unwrap_or_else(|| env::var("ROOM_ID").unwrap_or_else(|_| "24779526".to_string()));
@@ -84,9 +94,20 @@ fn main() {
             .filter_level(log::LevelFilter::Debug)
             .try_init();
     }
-    // Get SESSDATA from environment variable for real test
+
+    // Create client with automatic browser cookie detection
     let (tx, mut rx) = mpsc::channel(64);
-    let mut client = BiliLiveClient::new(&sessdata, &room_id, tx);
+    let mut client = match BiliLiveClient::new_auto(sessdata.as_deref(), &room_id, tx) {
+        Ok(client) => {
+            log::info!("Successfully created client with automatic cookie detection");
+            client
+        }
+        Err(e) => {
+            eprintln!("Failed to create client: {}", e);
+            eprintln!("Please ensure you are logged into bilibili.com in your browser, or provide SESSDATA manually.");
+            std::process::exit(1);
+        }
+    };
     client.send_auth();
     client.send_heart_beat();
     let shared_client: Arc<Mutex<BiliLiveClient>> = Arc::new(Mutex::new(client));
@@ -158,10 +179,14 @@ fn main() {
     // Print configuration information
     println!("Bilibili Danmu Client");
     println!("Connected to room: {}", room_id);
-    println!(
-        "Using SESSDATA: {}...",
-        &sessdata.chars().take(10).collect::<String>()
-    );
+    if let Some(sessdata_val) = &sessdata {
+        println!(
+            "Using provided SESSDATA: {}...",
+            &sessdata_val.chars().take(10).collect::<String>()
+        );
+    } else {
+        println!("Using auto-detected SESSDATA from browser cookies");
+    }
 
     // create a thread to process the rx channel messages using tokio runtime and pass to scheduler
     let rt = Runtime::new().unwrap();

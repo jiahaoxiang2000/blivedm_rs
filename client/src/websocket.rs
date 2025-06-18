@@ -32,6 +32,22 @@ impl BiliLiveClient {
         }
     }
 
+    /// Create a new client with automatic browser cookie detection
+    /// If sessdata is None or empty, it will try to find SESSDATA from browser cookies
+    pub fn new_auto(
+        sessdata: Option<&str>,
+        room_id: &str,
+        r: Sender<BiliMessage>,
+    ) -> Result<Self, String> {
+        let (v, auth) = init_server_auto(sessdata, room_id)?;
+        let (ws, _res) = connect(v["host_list"].clone());
+        Ok(BiliLiveClient {
+            ws,
+            auth_msg: serde_json::to_string(&auth).unwrap(),
+            ss: r,
+        })
+    }
+
     pub fn send_auth(&mut self) {
         let _ = self.ws.send(Message::Binary(make_packet(
             self.auth_msg.as_str(),
@@ -170,10 +186,16 @@ pub fn init_server(sessdata: &str, room_id: &str) -> (Value, AuthMessage) {
     if !sessdata.is_empty() {
         let (_, body1) = init_uid(headers.clone());
         let body1_v: Value = serde_json::from_str(body1.as_str()).unwrap();
-        auth_map.insert(
-            "uid".to_string(),
-            body1_v["data"]["mid"].as_i64().unwrap().to_string(),
-        );
+
+        // Check if the authentication was successful
+        if let Some(mid) = body1_v["data"]["mid"].as_i64() {
+            auth_map.insert("uid".to_string(), mid.to_string());
+            log::info!("Successfully authenticated with uid: {}", mid);
+        } else {
+            log::warn!("Authentication failed - SESSDATA may be invalid or expired");
+            log::debug!("Auth response: {}", body1);
+            auth_map.insert("uid".to_string(), "0".to_string());
+        }
     } else {
         auth_map.insert("uid".to_string(), "0".to_string());
     }
@@ -297,6 +319,24 @@ pub fn handle(json: Value) -> Option<BiliMessage> {
         // Add more cases for other types as needed
         _ => Some(BiliMessage::Unsupported),
     }
+}
+
+/// Enhanced init_server that can automatically detect SESSDATA from browser cookies
+pub fn init_server_auto(
+    provided_sessdata: Option<&str>,
+    room_id: &str,
+) -> Result<(Value, AuthMessage), String> {
+    // Try to get SESSDATA from provided value or browser cookies
+    let sessdata = get_sessdata_or_browser(provided_sessdata)
+        .ok_or_else(|| "No SESSDATA found in provided value or browser cookies. Please log into bilibili.com in your browser or provide SESSDATA manually.".to_string())?;
+
+    log::info!(
+        "Using SESSDATA for authentication: {}...",
+        &sessdata[..10.min(sessdata.len())]
+    );
+
+    let result = init_server(&sessdata, room_id);
+    Ok(result)
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 [package]
-name = "tts_example"
+name = "examples"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,12 @@ edition = "2021"
 name = "tts_example"
 path = "tts_example.rs"
 
+[[bin]]
+name = "browser_cookie_test"
+path = "browser_cookie_test.rs"
+
 [dependencies]
 client = { path = "../client" }
 plugins = { path = "../plugins" }
+env_logger = "0.11.8"
+log = "0.4"

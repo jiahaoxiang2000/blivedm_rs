@@ -7,6 +7,28 @@ use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 use md5;
 
+// Add browser cookie support
+use crate::browser_cookies;
+
+/// Get SESSDATA from browser cookies if not provided
+pub fn get_sessdata_or_browser(provided_sessdata: Option<&str>) -> Option<String> {
+    if let Some(sessdata) = provided_sessdata {
+        if !sessdata.is_empty() && sessdata != "dummy_sessdata" && sessdata.len() > 20 {
+            log::info!("Using provided SESSDATA");
+            return Some(sessdata.to_string());
+        }
+    }
+    
+    log::info!("No valid SESSDATA provided, searching browser cookies...");
+    if let Some(browser_sessdata) = browser_cookies::find_bilibili_sessdata() {
+        log::info!("Found SESSDATA in browser cookies");
+        Some(browser_sessdata)
+    } else {
+        log::warn!("No SESSDATA found in browser cookies");
+        None
+    }
+}
+
 pub fn init_uid(headers: HeaderMap) -> (StatusCode, String) {
     let client = reqwest::blocking::Client::builder()
         .https_only(true)

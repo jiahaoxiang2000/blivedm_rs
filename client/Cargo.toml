@@ -24,6 +24,10 @@ brotlic = "0.8.1"
 log = "0.4"
 env_logger = "0.11.8"
 md5 = "0.7"
+# Add browser cookie reading capability
+sqlite = "0.36"
+directories = "5.0"
+chrono = "0.4"
 
 futures = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
