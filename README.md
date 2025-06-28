@@ -4,14 +4,15 @@ Bilibili live room DM (Danmaku) websocket client library for Rust.
 
 ## ✨ New Feature: Automatic Browser Cookie Detection
 
-**No more manual SESSDATA extraction!** The client now automatically detects bilibili cookies from your browser.
+**No more manual Cookie extraction!** The client now automatically detects bilibili cookies from your browser.
 
 ```bash
-# Just run without SESSDATA - it will auto-detect from your browser!
+# Just run without cookies - it will auto-detect from your browser!
 cargo run --bin danmu -- 24779526
-
-# Still works with manual SESSDATA if needed
-cargo run --bin danmu -- your_sessdata 24779526
+# Still works with manual cookies if needed
+cargo run --bin danmu -- --room-id 24779526
+# Or, with explicit argument:
+cargo run --bin danmu -- --room-id 24779526 --cookies "SESSDATA=your_sessdata; other_cookie=..."
 ```
 
 Supports Chrome, Firefox, Edge, Chromium, and Opera on Linux, macOS, and Windows. See [Browser Cookie Documentation](docs/browser-cookies.md) for details.
@@ -29,10 +30,10 @@ cd blivedm_rs
 cargo build --release
 
 # Run the danmu client (auto-detects browser cookies)
-./target/release/danmu 24779526
+./target/release/danmu --room-id 24779526
 
-# Or with manual SESSDATA
-./target/release/danmu <SESSDATA> <ROOM_ID>
+# Or with manual cookies (must include SESSDATA)
+./target/release/danmu --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 24779526
 ```
 
 ### System Requirements
@@ -65,19 +66,19 @@ The TTS server provides high-quality neural voices and multiple TTS backends. Se
 
 ```bash
 # NEW: Auto-detect browser cookies (recommended)
-./target/release/danmu 12345
+./target/release/danmu --room-id 12345
 
-# Traditional: Manual SESSDATA
-./target/release/danmu your_sessdata 12345
+# Manual cookies (must include SESSDATA)
+./target/release/danmu --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 12345
 
 # With TTS REST API server
-./target/release/danmu 12345 --tts-server http://localhost:8000 --tts-volume 0.7
+./target/release/danmu --room-id 12345 --tts-server http://localhost:8000 --tts-volume 0.7
 
 # With local TTS (macOS)
-./target/release/danmu 12345 --tts-command say --tts-args "-v,Mei-Jia"
+./target/release/danmu --room-id 12345 --tts-command say --tts-args "-v,Mei-Jia"
 
-# With local TTS (Linux)  
-./target/release/danmu 12345 --tts-command espeak-ng --tts-args "-v,cmn"
+# With local TTS (Linux)
+./target/release/danmu --room-id 12345 --tts-command espeak-ng --tts-args "-v,cmn"
 
 # Test browser cookie detection
 ./target/release/browser_cookie_test

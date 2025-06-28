@@ -17,12 +17,12 @@ use tokio::runtime::Runtime;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// SESSDATA for Bilibili authentication (optional - will auto-detect from browser if not provided)
-    #[arg(value_name = "SESSDATA")]
-    sessdata: Option<String>,
+    /// Cookies for Bilibili authentication (optional - will auto-detect from browser if not provided)
+    #[arg(long, value_name = "COOKIES")]
+    cookies: Option<String>,
 
     /// Room ID to connect to
-    #[arg(value_name = "ROOM_ID")]
+    #[arg(long, value_name = "ROOM_ID")]
     room_id: Option<String>,
 
     /// TTS REST API server URL
@@ -69,23 +69,17 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    // Load SESSDATA and room_id from CLI args or environment variables
-    let sessdata = args.sessdata.or_else(|| {
-        let env_sessdata = env::var("SESSDATA").ok();
-        if let Some(s) = &env_sessdata {
-            if s.is_empty() || s == "dummy_sessdata" {
-                None
-            } else {
-                env_sessdata
-            }
-        } else {
-            None
-        }
+    // Load cookies and room_id from CLI args or environment variables
+    let cookies = args.cookies.or_else(|| {
+        env::var("Cookie")
+            .ok()
+            .filter(|s| !s.is_empty() && s != "SESSDATA=dummy_sessdata")
     });
-    
+
     let room_id = args
         .room_id
-        .unwrap_or_else(|| env::var("ROOM_ID").unwrap_or_else(|_| "24779526".to_string()));
+        .or_else(|| env::var("ROOM_ID").ok())
+        .unwrap_or_else(|| "24779526".to_string());
 
     // Initialize logging
     if args.debug || env::var("DEBUG").unwrap_or_default() == "1" {
@@ -97,14 +91,16 @@ fn main() {
 
     // Create client with automatic browser cookie detection
     let (tx, mut rx) = mpsc::channel(64);
-    let mut client = match BiliLiveClient::new_auto(sessdata.as_deref(), &room_id, tx) {
+    let mut client = match BiliLiveClient::new_auto(cookies.as_deref(), &room_id, tx) {
         Ok(client) => {
             log::info!("Successfully created client with automatic cookie detection");
             client
         }
         Err(e) => {
             eprintln!("Failed to create client: {}", e);
-            eprintln!("Please ensure you are logged into bilibili.com in your browser, or provide SESSDATA manually.");
+            eprintln!(
+                "Please ensure you are logged into bilibili.com in your browser, or provide cookies manually."
+            );
             std::process::exit(1);
         }
     };
@@ -179,13 +175,13 @@ fn main() {
     // Print configuration information
     println!("Bilibili Danmu Client");
     println!("Connected to room: {}", room_id);
-    if let Some(sessdata_val) = &sessdata {
+    if let Some(cookies_val) = &cookies {
         println!(
-            "Using provided SESSDATA: {}...",
-            &sessdata_val.chars().take(10).collect::<String>()
+            "Using provided cookies: {}...",
+            &cookies_val.chars().take(30).collect::<String>()
         );
     } else {
-        println!("Using auto-detected SESSDATA from browser cookies");
+        println!("Using auto-detected cookies from browser");
     }
 
     // create a thread to process the rx channel messages using tokio runtime and pass to scheduler
