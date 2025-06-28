@@ -8,7 +8,7 @@ Bilibili live room DM (Danmaku) websocket client library for Rust.
 
 ```bash
 # Just run without cookies - it will auto-detect from your browser!
-cargo run --bin danmu -- 24779526
+cargo run --bin danmu -- --room-id 24779526
 # Still works with manual cookies if needed
 cargo run --bin danmu -- --room-id 24779526
 # Or, with explicit argument:
@@ -80,20 +80,10 @@ The TTS server provides high-quality neural voices and multiple TTS backends. Se
 # With local TTS (Linux)
 ./target/release/danmu --room-id 12345 --tts-command espeak-ng --tts-args "-v,cmn"
 
-# Test browser cookie detection
-./target/release/browser_cookie_test
-
 # Show all available options
 ./target/release/danmu --help
 ```
 
-### Building from Source
-
-```bash
-git clone https://github.com/jiahaoxiang2000/blivedm_rs.git
-cd blivedm_rs
-cargo build --release
-```
 
 ## Documentation
 

@@ -18,11 +18,14 @@ You can provide `SESSDATA` and `room_id` either as command-line arguments or env
 ### Command-line Usage
 
 ```sh
-# Basic usage
-cargo run -p danmu -- [SESSDATA] [ROOM_ID]
+# Basic usage (auto-detects browser cookies)
+cargo run -p danmu -- --room-id ROOM_ID
+
+# With manual cookies
+cargo run -p danmu -- --room-id ROOM_ID --cookies "SESSDATA=your_sessdata; other_cookie=..."
 
 # With TTS configuration
-cargo run -p danmu -- [SESSDATA] [ROOM_ID] [TTS_OPTIONS]
+cargo run -p danmu -- --room-id ROOM_ID [TTS_OPTIONS]
 
 # Show all available options
 cargo run -p danmu -- --help
@@ -31,12 +34,15 @@ cargo run -p danmu -- --help
 ### Environment Variables Fallback
 
 ```sh
-export SESSDATA=your_sessdata
 export ROOM_ID=your_room_id
-cargo run -p danmu
+cargo run -p danmu -- --room-id $ROOM_ID
+
+# Or with manual cookies
+export SESSDATA=your_sessdata
+cargo run -p danmu -- --room-id $ROOM_ID --cookies "SESSDATA=$SESSDATA"
 ```
 
-If command-line arguments are not provided, the binary will use environment variables. If environment variables are also not set, it will use default values (`dummy_sessdata` for SESSDATA and `24779526` for ROOM_ID).
+The `--room-id` flag is required. If no cookies are provided via `--cookies`, the binary will auto-detect browser cookies. Manual cookies can also be provided via environment variables.
 
 ### Build Release Binary
 
@@ -57,14 +63,17 @@ The danmu binary supports TTS functionality to convert incoming danmaku messages
 If you have a TTS REST API server running (like edge-tts server):
 
 ```sh
-# Default Chinese voice with medium quality
-./danmu <SESSDATA> <room_id> --tts-server http://localhost:8000
+# Default Chinese voice with medium quality (auto-detects cookies)
+./danmu --room-id room_id --tts-server http://localhost:8000
+
+# With manual cookies
+./danmu --room-id room_id --cookies "SESSDATA=your_sessdata" --tts-server http://localhost:8000
 
 # Custom voice and quality
-./danmu <SESSDATA> <room_id> --tts-server http://localhost:8000 --tts-voice "zh-CN-XiaoxiaoNeural" --tts-quality high
+./danmu --room-id room_id --tts-server http://localhost:8000 --tts-voice "zh-CN-XiaoxiaoNeural" --tts-quality high
 
 # Custom volume (0.0 to 1.0)
-./danmu <SESSDATA> <room_id> --tts-server http://localhost:8000 --tts-volume 0.7
+./danmu --room-id room_id --tts-server http://localhost:8000 --tts-volume 0.7
 ```
 
 ### Local Command-line TTS
@@ -73,7 +82,7 @@ For local TTS programs:
 
 **macOS (using built-in `say` command):**
 ```sh
-./danmu <SESSDATA> <room_id> --tts-command say --tts-args "-v,Mei-Jia"
+./danmu --room-id room_id --tts-command say --tts-args "-v,Mei-Jia"
 ```
 
 **Linux (using espeak-ng):**
@@ -82,7 +91,7 @@ For local TTS programs:
 sudo apt-get install espeak-ng
 
 # Run with Chinese voice
-./danmu <SESSDATA> <room_id> --tts-command espeak-ng --tts-args "-v,cmn"
+./danmu --room-id room_id --tts-command espeak-ng --tts-args "-v,cmn"
 ```
 
 ### TTS Configuration Options
@@ -147,7 +156,11 @@ Incoming messages will be processed by the registered plugin (e.g., printed to t
 
 ### Basic Usage (Terminal Display Only)
 ```sh
-cargo run -p danmu -- your_sessdata 12345
+# Auto-detect browser cookies
+cargo run -p danmu -- --room-id 12345
+
+# With manual cookies
+cargo run -p danmu -- --room-id 12345 --cookies "SESSDATA=your_sessdata"
 ```
 
 ### Help and Available Options
@@ -157,23 +170,23 @@ cargo run -p danmu -- --help
 
 ### With TTS REST API
 ```sh
-cargo run -p danmu -- your_sessdata 12345 --tts-server http://localhost:8000 --tts-volume 0.8
+cargo run -p danmu -- --room-id 12345 --tts-server http://localhost:8000 --tts-volume 0.8
 ```
 
 ### With Local TTS (macOS)
 ```sh
-cargo run -p danmu -- your_sessdata 12345 --tts-command say --tts-args "-v,Mei-Jia"
+cargo run -p danmu -- --room-id 12345 --tts-command say --tts-args "-v,Mei-Jia"
 ```
 
 ### With Local TTS (Linux)
 ```sh
-cargo run -p danmu -- your_sessdata 12345 --tts-command espeak-ng --tts-args "-v,cmn,-s,150"
+cargo run -p danmu -- --room-id 12345 --tts-command espeak-ng --tts-args "-v,cmn,-s,150"
 ```
 
 ### Advanced TTS Configuration
 ```sh
 # Full REST API configuration with debug logging
-cargo run -p danmu -- your_sessdata 12345 \
+cargo run -p danmu -- --room-id 12345 \
   --tts-server http://localhost:8000 \
   --tts-voice "zh-CN-XiaoxiaoNeural" \
   --tts-backend "edge" \
@@ -182,17 +195,17 @@ cargo run -p danmu -- your_sessdata 12345 \
   --debug
 
 # Using built release binary (faster startup)
-./target/release/danmu your_sessdata 12345 \
+./target/release/danmu --room-id 12345 \
   --tts-server http://localhost:8000 \
   --tts-volume 0.5
 
 # Command-line TTS with custom speech rate (Linux)
-cargo run -p danmu -- your_sessdata 12345 \
+cargo run -p danmu -- --room-id 12345 \
   --tts-command espeak-ng \
   --tts-args "-v,cmn,-s,120,-p,50"
 
 # Quiet mode (no TTS, terminal display only)
-cargo run -p danmu -- your_sessdata 12345
+cargo run -p danmu -- --room-id 12345
 ```
 
 ## Troubleshooting
