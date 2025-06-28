@@ -1,0 +1,11 @@
+GET https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=24779526&type=0&web_location=444.8&w_rid=884cf361b8ad4e239b4a9dbbb7134679&wts=1748308267
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:138.0) Gecko/20100101 Firefox/138.0
+Referer: https://live.bilibili.com
+Cookie: SESSDATA=$SESSDATA
+
+# Error response:
+# {
+#   "code": -352,
+#   "message": "-352",
+#   "ttl": 1
+# }
