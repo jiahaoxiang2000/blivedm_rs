@@ -7,9 +7,6 @@ edition = "2021"
 name = "tts_example"
 path = "tts_example.rs"
 
-[[bin]]
-name = "browser_cookie_test"
-path = "browser_cookie_test.rs"
 
 [dependencies]
 client = { path = "../client" }
