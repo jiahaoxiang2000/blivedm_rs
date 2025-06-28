@@ -132,3 +132,12 @@ When creating new plugins:
 2. Use the existing pattern from `terminal_display.rs` and `tts.rs`
 3. Register handlers with the scheduler in `danmu/src/main.rs`
 4. Follow the async event-driven architecture
+```
+
+## GitHub Issue Management
+
+- Use `gh issue create` to open a new issue in the repository
+- Use `gh issue list` to view existing issues
+- Use `gh issue view [issue-number]` to see details of a specific issue
+- Use `gh issue close [issue-number]` to close an issue
+- Use `gh issue reopen [issue-number]` to reopen a previously closed issue
