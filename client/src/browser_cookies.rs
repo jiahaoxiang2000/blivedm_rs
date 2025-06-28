@@ -299,48 +299,63 @@ fn read_firefox_cookies(
 }
 
 /// Find SESSDATA cookie from all supported browsers
-pub fn find_bilibili_sessdata() -> Option<String> {
+pub fn find_bilibili_cookies_as_string() -> Option<String> {
     let browsers = Browser::get_all_supported();
+    let mut all_cookies = vec![];
 
     for browser in browsers {
         info!("Checking browser: {:?}", browser);
 
-        match read_cookies_from_browser(&browser, Some("bilibili.com")) {
-            Ok(cookies) => {
-                for cookie in cookies {
-                    if cookie.name == "SESSDATA" {
-                        // Check if cookie is not expired
-                        if let Some(expires) = cookie.expires {
-                            if Utc::now() > expires {
-                                warn!(
-                                    "Found expired SESSDATA cookie in {:?}, expires: {:?}",
-                                    browser, expires
-                                );
-                                continue;
-                            }
-                        }
-
-                        info!("Found valid SESSDATA cookie in {:?}", browser);
-                        // Basic validation - SESSDATA should be a reasonable length
-                        if cookie.value.len() > 20 {
-                            return Some(cookie.value);
-                        } else {
-                            warn!(
-                                "Found SESSDATA but value seems too short: {}",
-                                cookie.value.len()
-                            );
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                debug!("Failed to read cookies from {:?}: {}", browser, e);
-            }
+        if let Ok(cookies) = read_cookies_from_browser(&browser, Some("bilibili.com")) {
+            all_cookies.extend(cookies);
         }
     }
 
-    warn!("No valid SESSDATA cookie found in any browser");
-    None
+    let mut valid_cookies = all_cookies
+        .into_iter()
+        .filter(|cookie| {
+            if let Some(expires) = cookie.expires {
+                if Utc::now() > expires {
+                    warn!(
+                        "Found expired {} cookie, expires: {:?}",
+                        cookie.name, expires
+                    );
+                    return false;
+                }
+            }
+            true
+        })
+        .collect::<Vec<_>>();
+
+    // Deduplicate cookies, keeping the one with the latest expiry
+    valid_cookies.sort_by(|a, b| {
+        if a.name != b.name {
+            a.name.cmp(&b.name)
+        } else {
+            b.expires.cmp(&a.expires) // None is smaller
+        }
+    });
+    valid_cookies.dedup_by(|a, b| a.name == b.name);
+
+    if valid_cookies.is_empty() {
+        warn!("No valid bilibili cookies found in any browser");
+        return None;
+    }
+
+    info!("Found {} valid bilibili cookies", valid_cookies.len());
+
+    let cookie_string = valid_cookies
+        .iter()
+        .map(|c| format!("{}={}", c.name, c.value))
+        .collect::<Vec<String>>()
+        .join("; ");
+
+    if cookie_string.contains("SESSDATA") {
+        Some(cookie_string)
+    } else {
+        warn!("No SESSDATA cookie found among the valid cookies");
+        None
+    }
 }
 
 /// Get all bilibili cookies from browsers for debugging
@@ -383,7 +398,7 @@ mod tests {
     #[test]
     fn test_find_sessdata() {
         // This test will only work if you have bilibili cookies in your browser
-        if let Some(sessdata) = find_bilibili_sessdata() {
+        if let Some(sessdata) = find_bilibili_cookies_as_string() {
             println!("Found SESSDATA: {}", &sessdata[..20.min(sessdata.len())]);
             assert!(!sessdata.is_empty());
         } else {

@@ -22,8 +22,8 @@ pub struct BiliLiveClient {
 }
 
 impl BiliLiveClient {
-    pub fn new(sessdata: &str, room_id: &str, r: Sender<BiliMessage>) -> Self {
-        let (v, auth) = init_server(sessdata, room_id);
+    pub fn new(cookies: &str, room_id: &str, r: Sender<BiliMessage>) -> Self {
+        let (v, auth) = init_server(cookies, room_id);
         let (ws, _res) = connect(v["host_list"].clone());
         BiliLiveClient {
             ws,
@@ -33,13 +33,13 @@ impl BiliLiveClient {
     }
 
     /// Create a new client with automatic browser cookie detection
-    /// If sessdata is None or empty, it will try to find SESSDATA from browser cookies
+    /// If cookies is None or empty, it will try to find cookies from browser
     pub fn new_auto(
-        sessdata: Option<&str>,
+        cookies: Option<&str>,
         room_id: &str,
         r: Sender<BiliMessage>,
     ) -> Result<Self, String> {
-        let (v, auth) = init_server_auto(sessdata, room_id)?;
+        let (v, auth) = init_server_auto(cookies, room_id)?;
         let (ws, _res) = connect(v["host_list"].clone());
         Ok(BiliLiveClient {
             ws,
@@ -162,27 +162,34 @@ fn find_server(vd: Vec<DanmuServer>) -> (String, String, String) {
     )
 }
 
-pub fn init_server(sessdata: &str, room_id: &str) -> (Value, AuthMessage) {
-    let mut cookies = HashMap::new();
-    cookies.insert("SESSDATA".to_string(), sessdata.to_string());
+pub fn init_server(cookies: &str, room_id: &str) -> (Value, AuthMessage) {
     let mut auth_map = HashMap::new();
     let mut headers = reqwest::header::HeaderMap::new();
     headers.insert(
         reqwest::header::COOKIE,
-        reqwest::header::HeaderValue::from_str(
-            &cookies
-                .iter()
-                .map(|(name, value)| format!("{}={}", name, value))
-                .collect::<Vec<_>>()
-                .join("; "),
-        )
-        .unwrap(),
+        reqwest::header::HeaderValue::from_str(cookies).unwrap(),
     );
     headers.insert(
         reqwest::header::USER_AGENT,
         reqwest::header::HeaderValue::from_static(crate::auth::USER_AGENT),
     );
     log::debug!("headers: {:?}", headers);
+
+    // Extract SESSDATA from cookies for authentication
+    let sessdata = cookies
+        .split(';')
+        .find_map(|kv| {
+            let mut parts = kv.trim().splitn(2, '=');
+            let key = parts.next()?.trim();
+            let value = parts.next()?.trim();
+            if key == "SESSDATA" {
+                Some(value.to_string())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| "".to_string());
+
     if !sessdata.is_empty() {
         let (_, body1) = init_uid(headers.clone());
         let body1_v: Value = serde_json::from_str(body1.as_str()).unwrap();
@@ -321,21 +328,21 @@ pub fn handle(json: Value) -> Option<BiliMessage> {
     }
 }
 
-/// Enhanced init_server that can automatically detect SESSDATA from browser cookies
+/// Enhanced init_server that can automatically detect cookies from browser
 pub fn init_server_auto(
-    provided_sessdata: Option<&str>,
+    provided_cookies: Option<&str>,
     room_id: &str,
 ) -> Result<(Value, AuthMessage), String> {
-    // Try to get SESSDATA from provided value or browser cookies
-    let sessdata = get_sessdata_or_browser(provided_sessdata)
-        .ok_or_else(|| "No SESSDATA found in provided value or browser cookies. Please log into bilibili.com in your browser or provide SESSDATA manually.".to_string())?;
+    // Try to get cookies from provided value or browser cookies
+    let cookies = get_cookies_or_browser(provided_cookies)
+        .ok_or_else(|| "No cookies found in provided value or browser cookies. Please log into bilibili.com in your browser or provide cookies manually.".to_string())?;
 
     log::info!(
-        "Using SESSDATA for authentication: {}...",
-        &sessdata[..10.min(sessdata.len())]
+        "Using cookies for authentication: {}...",
+        &cookies[..10.min(cookies.len())]
     );
 
-    let result = init_server(&sessdata, room_id);
+    let result = init_server(&cookies, room_id);
     Ok(result)
 }
 
@@ -346,17 +353,16 @@ mod tests {
 
     #[test]
     fn test_bili_live_client_connect() {
-        // Enable debug log output for test if DEBUG=1 is set
-        if std::env::var("DEBUG").unwrap_or_default() == "1" {
-            let _ = env_logger::builder()
-                .is_test(true)
-                .filter_level(log::LevelFilter::Debug)
-                .try_init();
-        }
-        // Get SESSDATA from environment variable for real test
-        let sessdata = std::env::var("SESSDATA").unwrap_or_else(|_| "dummy_sessdata".to_string());
+        // Always enable debug log output for test
+        let _ = env_logger::builder()
+            .is_test(true)
+            .filter_level(log::LevelFilter::Debug)
+            .try_init();
+        // Get cookies from environment variable for real test
+        let cookies =
+            std::env::var("Cookie").unwrap_or_else(|_| "SESSDATA=dummy_sessdata".to_string());
         let room_id = "24779526";
         let (tx, _rx) = channel(10);
-        let _client = BiliLiveClient::new(&sessdata, room_id, tx);
+        let _client = BiliLiveClient::new(&cookies, room_id, tx);
     }
 }

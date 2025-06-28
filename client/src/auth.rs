@@ -10,24 +10,24 @@ use std::time::{SystemTime, UNIX_EPOCH};
 // Add browser cookie support
 use crate::browser_cookies;
 
-/// Get SESSDATA from browser cookies first (newest), then fallback to provided SESSDATA
-pub fn get_sessdata_or_browser(provided_sessdata: Option<&str>) -> Option<String> {
+/// Get Bilibili cookies from browser (preferred, newest), then fallback to provided cookie string
+pub fn get_cookies_or_browser(provided_cookie: Option<&str>) -> Option<String> {
     // First try browser cookies as they are the newest
-    log::info!("Searching for SESSDATA in browser cookies (newest)...");
-    if let Some(browser_sessdata) = browser_cookies::find_bilibili_sessdata() {
-        log::info!("Found SESSDATA in browser cookies (using newest)");
-        return Some(browser_sessdata);
+    log::info!("Searching for Bilibili cookies in browser (newest)...");
+    if let Some(browser_cookie) = browser_cookies::find_bilibili_cookies_as_string() {
+        log::info!("Found Bilibili cookies in browser (using newest)");
+        return Some(browser_cookie);
     }
 
-    log::info!("No SESSDATA found in browser cookies, checking provided SESSDATA...");
-    if let Some(sessdata) = provided_sessdata {
-        if !sessdata.is_empty() && sessdata != "dummy_sessdata" && sessdata.len() > 20 {
-            log::info!("Using provided SESSDATA as fallback");
-            return Some(sessdata.to_string());
+    log::info!("No Bilibili cookies found in browser, checking provided cookie...");
+    if let Some(cookie) = provided_cookie {
+        if !cookie.is_empty() && cookie != "dummy_sessdata" && cookie.len() > 20 {
+            log::info!("Using provided cookie as fallback");
+            return Some(cookie.to_string());
         }
     }
 
-    log::warn!("No valid SESSDATA found in browser cookies or provided input");
+    log::warn!("No valid Bilibili cookies found in browser or provided input");
     None
 }
 
@@ -160,6 +160,7 @@ pub fn init_host_server(headers: HeaderMap, room_id: u64) -> (StatusCode, String
     // Construct final URL
     let url = format!("{}?{}", DANMAKU_SERVER_CONF_URL, signed_query);
 
+    // debug log the total request
     let response = client.get(url).headers(request_headers).send();
     log::debug!("init host server response: {:?}", response);
     let stat: StatusCode;
@@ -440,6 +441,7 @@ mod tests {
     fn test_correct_bilibili_url_signature() {
         // Test the exact URL from the working example:
         // "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=24779526&type=0&web_location=444.8&wts=1748308267&w_rid=884cf361b8ad4e239b4a9dbbb7134679"
+        // "https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=24779526&type=0&web_location=444.8&w_rid=d1e619744b4977f88ed67524a1f567cc&wts=1751072897"
 
         let params = vec![
             ("id", String::from("24779526")),
@@ -453,16 +455,16 @@ mod tests {
                 "7cd084941338484aae1ad9425b84077c".to_string(),
                 "4932caff0ff746eab6f01bf08b70ac45".to_string(),
             ),
-            1748308267,
+            1751072897,
         );
 
         // Expected complete query string from working URL
-        let expected = "id=24779526&type=0&web_location=444.8&wts=1748308267&w_rid=884cf361b8ad4e239b4a9dbbb7134679";
+        let expected = "id=24779526&type=0&web_location=444.8&wts=1751072897&w_rid=d1e619744b4977f88ed67524a1f567cc";
         assert_eq!(result, expected);
 
         // Extract and verify the w_rid specifically
         let w_rid = result.split("w_rid=").nth(1).unwrap();
-        assert_eq!(w_rid, "884cf361b8ad4e239b4a9dbbb7134679");
+        assert_eq!(w_rid, "d1e619744b4977f88ed67524a1f567cc");
     }
 
     #[test]
