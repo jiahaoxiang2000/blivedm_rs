@@ -49,8 +49,11 @@ jobs:
             echo "# Build the project" >> $GITHUB_ENV
             echo "cargo build --release" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            echo "# Run the danmu client" >> $GITHUB_ENV
-            echo "./target/release/danmu <SESSDATA> <ROOM_ID>" >> $GITHUB_ENV
+            echo "# Run the danmu client (auto-detect cookies from browser)" >> $GITHUB_ENV
+            echo "./target/release/danmu --room-id <ROOM_ID>" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+            echo "# Or with manual cookies (must include SESSDATA)" >> $GITHUB_ENV
+            echo "./target/release/danmu --cookies \"SESSDATA=your_sessdata; other_cookie=...\" --room-id <ROOM_ID>" >> $GITHUB_ENV
             echo "\`\`\`" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "## System Requirements" >> $GITHUB_ENV
@@ -84,8 +87,11 @@ jobs:
             echo "# Build the project" >> $GITHUB_ENV
             echo "cargo build --release" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            echo "# Run the danmu client" >> $GITHUB_ENV
-            echo "./target/release/danmu <SESSDATA> <ROOM_ID>" >> $GITHUB_ENV
+            echo "# Run the danmu client (auto-detect cookies from browser)" >> $GITHUB_ENV
+            echo "./target/release/danmu --room-id <ROOM_ID>" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+            echo "# Or with manual cookies (must include SESSDATA)" >> $GITHUB_ENV
+            echo "./target/release/danmu --cookies \"SESSDATA=your_sessdata; other_cookie=...\" --room-id <ROOM_ID>" >> $GITHUB_ENV
             echo "\`\`\`" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "## System Requirements" >> $GITHUB_ENV
