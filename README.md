@@ -2,6 +2,8 @@
 
 Bilibili live room DM (Danmaku) websocket client library for Rust.
 
+[中文版本 README](README.zh.md)
+
 ## ✨ New Feature: Automatic Browser Cookie Detection
 
 **No more manual Cookie extraction!** The client now automatically detects bilibili cookies from your browser.
