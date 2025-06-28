@@ -19,6 +19,8 @@ Supports Chrome, Firefox, Edge, Chromium, and Opera on Linux, macOS, and Windows
 
 ## Quick Start
 
+The detailed used guide on the [Danmu](docs/danmu.md) page.
+
 ### Building from Source
 
 ```bash
