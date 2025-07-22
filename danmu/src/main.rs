@@ -58,7 +58,7 @@ struct Args {
     tts_command: Option<String>,
 
     /// Comma-separated arguments for TTS command
-    #[arg(long, value_name = "ARGS")]
+    #[arg(long, value_name = "ARGS", allow_hyphen_values = true)]
     tts_args: Option<String>,
 
     /// Enable debug logging
