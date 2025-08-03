@@ -48,6 +48,7 @@ cargo build --release
   - Build tools: `sudo apt-get install pkg-config libssl-dev`
   - Optional TTS: `sudo apt-get install espeak-ng`
 - **macOS**: No additional dependencies (uses built-in `say` command for TTS)
+- **Windows**: No additional dependencies (uses built-in PowerShell TTS via System.Speech)
 
 ### Pre-built Binaries
 
@@ -83,6 +84,12 @@ The TTS server provides high-quality neural voices and multiple TTS backends. Se
 
 # With local TTS (Linux)
 ./target/release/danmu --room-id 12345 --tts-command espeak-ng --tts-args "-v,cmn"
+
+# With local TTS (Windows - basic echo, TTS functionality requires code enhancement)
+./target/release/danmu --room-id 12345 --tts-command cmd --tts-args "/c,echo"
+
+# Note: Windows TTS with PowerShell requires code modifications to handle text substitution
+# The current implementation appends text as final argument, which doesn't work with PowerShell scripts
 
 # Show all available options
 ./target/release/danmu --help
