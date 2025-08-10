@@ -1,119 +1,145 @@
 # blivedm_rs
 
-Bilibili live room DM (Danmaku) websocket client library for Rust.
+一个功能强大的 Bilibili 直播间弹幕 WebSocket 客户端 Rust 库，支持实时弹幕监控、文字转语音（TTS）和浏览器 Cookie 自动检测。
 
-[中文版本 README](README.zh.md)
+[English Version README](README.en.md)
 
-## ✨ New Feature: Automatic Browser Cookie Detection
+## 🚀 主要功能
 
-**No more manual Cookie extraction!** The client now automatically detects bilibili cookies from your browser.
+- **🔍 智能 Cookie 检测** - 自动从主流浏览器（Chrome、Firefox、Edge、Opera）检测登录状态
+- **💬 实时弹幕监控** - 连接 Bilibili 直播间，实时接收弹幕、礼物、进房等消息
+- **🔊 多平台 TTS 支持** - 支持本地 TTS（Windows PowerShell、macOS say、Linux espeak-ng）和远程 TTS 服务器
+- **🎛️ 插件化架构** - 模块化设计，支持自定义插件扩展功能
+- **🖥️ 跨平台支持** - 原生支持 Windows、macOS、Linux，提供预编译二进制文件
+- **⚡ 高性能异步** - 基于 Tokio 的异步架构，低资源占用，高并发处理
+- **🔧 灵活配置** - 支持命令行参数配置，可自定义 TTS 音量、语音等参数
+
+## ✨ 新功能：自动浏览器 Cookie 检测
+
+**无需手动提取 Cookie！** 客户端现在可以自动从您的浏览器检测 bilibili cookies。
+
+支持 Linux、macOS 和 Windows 上的 Chrome、Firefox、Edge、Chromium 和 Opera。详情请参阅[浏览器 Cookie 文档](docs/browser-cookies.md)。
+
+## 快速开始
+
+### 预构建二进制文件（推荐）
+
+现在提供预构建二进制文件！从 [Releases 页面](https://github.com/jiahaoxiang2000/blivedm_rs/releases) 下载适合您系统的版本：
+
+- **Windows**: `danmu-windows-x86_64.exe`
+- **Linux**: `danmu-linux-x86_64`
+- **macOS Intel**: `danmu-macos-x86_64`
+- **macOS Apple Silicon**: `danmu-macos-arm64`
+
+下载后直接运行：
 
 ```bash
-# Just run without cookies - it will auto-detect from your browser!
-cargo run --bin danmu -- --room-id 24779526
-# Still works with manual cookies if needed
-cargo run --bin danmu -- --room-id 24779526
-# Or, with explicit argument:
-cargo run --bin danmu -- --room-id 24779526 --cookies "SESSDATA=your_sessdata; other_cookie=..."
+# Windows
+danmu-windows-x86_64.exe --room-id 24779526
+
+# Linux/macOS (需要添加执行权限)
+chmod +x danmu-linux-x86_64
+./danmu-linux-x86_64 --room-id 24779526
+
+# macOS
+chmod +x danmu-macos-x86_64
+./danmu-macos-x86_64 --room-id 24779526
 ```
 
-Supports Chrome, Firefox, Edge, Chromium, and Opera on Linux, macOS, and Windows. See [Browser Cookie Documentation](docs/browser-cookies.md) for details.
-
-## Quick Start
-
-The detailed used guide on the [Danmu](docs/danmu.md) page.
-
-### Building from Source
+### 使用示例
 
 ```bash
-# Clone the repository
+# 新功能：自动检测浏览器 cookies（推荐）
+./danmu-linux-x86_64 --room-id 12345
+
+# 手动 cookies（必须包含 SESSDATA）
+./danmu-linux-x86_64 --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 12345
+
+# 使用 TTS REST API 服务器
+./danmu-linux-x86_64 --room-id 12345 --tts-server http://localhost:8000 --tts-volume 0.7
+
+# 使用本地 TTS（macOS）
+./danmu-macos-x86_64 --room-id 12345 --tts-command say --tts-args "-v,Mei-Jia"
+
+# 使用本地 TTS（Linux）
+./danmu-linux-x86_64 --room-id 12345 --tts-command espeak-ng --tts-args "-v,cmn"
+
+# ⚠️ Windows 用户建议：使用 TTS 服务器获得更好的语音体验
+# 本地 PowerShell TTS 存在技术限制，推荐使用远程 TTS 服务器：
+./danmu-windows-x86_64.exe --room-id 12345 --tts-server http://localhost:8000
+
+# 显示所有可用选项
+./danmu-linux-x86_64 --help
+```
+
+### TTS 服务器设置（Windows 用户推荐）
+
+**Windows 用户特别推荐使用 TTS 服务器！** 相比受限的本地 PowerShell TTS，服务器提供更好的语音质量和功能。
+
+```bash
+# 克隆并设置 TTS 服务器
+git clone https://github.com/jiahaoxiang2000/danmu-tts.git
+cd danmu-tts
+# 按照仓库中的设置说明进行操作
+```
+
+**TTS 服务器优势：**
+- 🎙️ **高质量语音** - 支持神经网络 TTS 和多种语音引擎
+- 🌐 **多语言支持** - 支持中文、英文等多种语言
+- ⚙️ **灵活配置** - 可自定义语音参数、音调、语速
+- 🔧 **易于部署** - 独立运行，无需复杂配置
+
+详细设置说明请参阅 [danmu-tts 仓库](https://github.com/jiahaoxiang2000/danmu-tts)。
+
+## 从源码构建
+
+如果您希望从源码构建或进行开发，可以按照以下步骤：
+
+```bash
+# 克隆仓库
 git clone https://github.com/jiahaoxiang2000/blivedm_rs.git
 cd blivedm_rs
 
-# Build the project
+# 构建项目
 cargo build --release
 
-# Run the danmu client (auto-detects browser cookies)
+# 运行弹幕客户端（自动检测浏览器 cookies）
 ./target/release/danmu --room-id 24779526
 
-# Or with manual cookies (must include SESSDATA)
+# 或使用手动 cookies（必须包含 SESSDATA）
 ./target/release/danmu --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 24779526
 ```
 
-### System Requirements
+### 系统要求
 
-- **Rust**: Latest stable version
+- **Rust**: 最新稳定版本
 - **Linux**: 
-  - Audio support: `sudo apt-get install libasound2-dev`
-  - Build tools: `sudo apt-get install pkg-config libssl-dev`
-  - Optional TTS: `sudo apt-get install espeak-ng`
-- **macOS**: No additional dependencies (uses built-in `say` command for TTS)
-- **Windows**: No additional dependencies (uses built-in PowerShell TTS via System.Speech)
+  - 音频支持：`sudo apt-get install libasound2-dev`
+  - 构建工具：`sudo apt-get install pkg-config libssl-dev`
+  - 可选 TTS：`sudo apt-get install espeak-ng`
+- **macOS**: 无需额外依赖（使用内置 `say` 命令进行 TTS）
+- **Windows**: 无需额外依赖（通过 System.Speech 使用内置 PowerShell TTS）
 
-### Pre-built Binaries
+详细使用指南请参阅 [Danmu](docs/danmu.md) 页面。
 
-Pre-built binaries will be available in future releases. Currently, please build from source using the instructions above.
+## 文档
 
-### TTS Server Setup (Optional)
+完整文档位于 [`docs/`](docs/) 文件夹中。主要部分包括：
 
-For advanced TTS functionality, you can set up the danmu-tts server:
+- [入门指南](docs/README.md)：介绍和设置说明。
+- [浏览器 Cookie 自动检测](docs/browser-cookies.md)：**新功能！** 自动 cookie 检测的工作原理。
+- [使用指南](docs/usage.md)：如何在您的项目中使用该库。
+- [架构](docs/architecture.md)：项目架构和设计。
+- [客户端模块](docs/client.md)：客户端实现的详细信息。
+- [弹幕模块](docs/danmu.md)：弹幕模块的信息。
+- [调度器](docs/scheduler.md)：调度器组件概述。
+- [插件](docs/plugins.md)：可用插件及其使用方法。
 
-```bash
-# Clone and setup the TTS server
-git clone https://github.com/jiahaoxiang2000/danmu-tts.git
-cd danmu-tts
-# Follow the setup instructions in the repository
-```
+库文档也可在 [pages](https://jiahaoxiang2000.github.io/blivedm_rs/) 上获取。
 
-The TTS server provides high-quality neural voices and multiple TTS backends. See the [danmu-tts repository](https://github.com/jiahaoxiang2000/danmu-tts) for detailed setup instructions.
+## 参考
 
-### Usage Examples
-
-```bash
-# NEW: Auto-detect browser cookies (recommended)
-./target/release/danmu --room-id 12345
-
-# Manual cookies (must include SESSDATA)
-./target/release/danmu --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 12345
-
-# With TTS REST API server
-./target/release/danmu --room-id 12345 --tts-server http://localhost:8000 --tts-volume 0.7
-
-# With local TTS (macOS)
-./target/release/danmu --room-id 12345 --tts-command say --tts-args "-v,Mei-Jia"
-
-# With local TTS (Linux)
-./target/release/danmu --room-id 12345 --tts-command espeak-ng --tts-args "-v,cmn"
-
-# With local TTS (Windows - basic echo, TTS functionality requires code enhancement)
-./target/release/danmu --room-id 12345 --tts-command cmd --tts-args "/c,echo"
-
-# Note: Windows TTS with PowerShell requires code modifications to handle text substitution
-# The current implementation appends text as final argument, which doesn't work with PowerShell scripts
-
-# Show all available options
-./target/release/danmu --help
-```
-
-
-## Documentation
-
-The full documentation is available in the [`docs/`](docs/) folder. Here are the main sections:
-
-- [Getting Started](docs/README.md): Introduction and setup instructions.
-- [Browser Cookie Auto-Detection](docs/browser-cookies.md): **NEW!** How automatic cookie detection works.
-- [Usage Guide](docs/usage.md): How to use the library in your projects.
-- [Architecture](docs/architecture.md): Project architecture and design.
-- [Client Module](docs/client.md): Details about the client implementation.
-- [Danmu Module](docs/danmu.md): Information on the danmu (bullet chat) module.
-- [Scheduler](docs/scheduler.md): Overview of the scheduler component.
-- [Plugins](docs/plugins.md): Available plugins and how to use them.
-
-The Library Documentation is also available at [pages](https://jiahaoxiang2000.github.io/blivedm_rs/).
-
-## Reference
-
-- [blivedm](https://github.com/xfgryujk/blivedm): Original Python implementation of the Bilibili live DM protocol.
-- [blivedm-rs](https://github.com/yanglul/blivedm_rs): Rust port of the blivedm library.
-- [bililive-rs](https://github.com/LightQuantumArchive/bililive-rs): Another Rust implementation for Bilibili live streaming.
-- [bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect): Bilibili API collection by SocialSisterYi.
+- [blivedm](https://github.com/xfgryujk/blivedm)：Bilibili 直播弹幕协议的原始 Python 实现。
+- [blivedm-rs](https://github.com/yanglul/blivedm_rs)：blivedm 库的 Rust 移植版。
+- [bililive-rs](https://github.com/LightQuantumArchive/bililive-rs)：另一个用于 Bilibili 直播的 Rust 实现。
+- [bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)：SocialSisterYi 的 Bilibili API 集合。
