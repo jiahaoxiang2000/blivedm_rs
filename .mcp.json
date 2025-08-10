@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "github-repo-mcp": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "github-repo-mcp"
+            ]
+        }
+    }
+}
