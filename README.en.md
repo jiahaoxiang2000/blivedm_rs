@@ -154,8 +154,6 @@ The full documentation is available in the [`docs/`](docs/) folder. Here are the
 - [Scheduler](docs/scheduler.md): Overview of the scheduler component.
 - [Plugins](docs/plugins.md): Available plugins and how to use them.
 
-The Library Documentation is also available at [pages](https://jiahaoxiang2000.github.io/blivedm_rs/).
-
 ## Reference
 
 - [blivedm](https://github.com/xfgryujk/blivedm): Original Python implementation of the Bilibili live DM protocol.
