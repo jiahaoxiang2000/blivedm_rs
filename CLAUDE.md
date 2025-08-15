@@ -43,6 +43,12 @@ cargo run --bin danmu -- --room-id 24779526 --cookies "SESSDATA=your_sessdata; o
 # With TTS server
 cargo run --bin danmu -- --room-id 24779526 --tts-server http://localhost:8000
 
+# Using configuration file
+cargo run --bin danmu -- --config config.toml
+
+# Print effective configuration
+cargo run --bin danmu -- --print-config
+
 # TTS example
 cargo run --bin tts_example
 
@@ -116,7 +122,66 @@ cd danmu-tts
 - **Plugins**: `plugins/src/lib.rs` - Plugin system with helper functions
 - **Examples**: `examples/tts_example.rs` - TTS functionality demonstration
 
-## Configuration Notes
+## Configuration
+
+The danmu client supports TOML configuration files to simplify command-line usage. Configuration values are resolved with the following precedence (highest to lowest):
+
+1. **CLI arguments** (override everything)
+2. **Environment variables** (e.g., `ROOM_ID`, `Cookie`, `DEBUG`)
+3. **Configuration file** values
+4. **Default values**
+
+### Configuration File Locations
+
+The client looks for configuration files in this order:
+1. Path specified with `--config` argument
+2. `config.toml` in current directory
+3. `~/.config/blivedm_rs/config.toml` (XDG config directory)
+
+**Note**: If no configuration file is found in the default locations (current directory or XDG config directory), the application will automatically create a pre-configured `config.toml` file with example values that you can customize.
+
+### Configuration File Format
+
+Create a `config.toml` file (see `config.toml.example` for a complete example):
+
+```toml
+# Connection settings
+[connection]
+room_id = "24779526"
+# cookies = "SESSDATA=your_sessdata; other_cookie=value"
+
+# TTS configuration
+[tts]
+server = "http://localhost:8000"
+voice = "zh-CN-XiaoxiaoNeural"
+backend = "edge"
+quality = "medium"
+format = "wav"
+sample_rate = 22050
+volume = 0.8
+
+# Alternative: local TTS command
+# command = "say"
+# args = "--voice=Kyoko"
+
+# Debug logging
+debug = false
+```
+
+### Configuration Commands
+
+```bash
+# Use specific config file
+cargo run --bin danmu -- --config path/to/config.toml
+
+# Print effective configuration (for debugging)
+cargo run --bin danmu -- --print-config
+
+# Override config file values with CLI args
+cargo run --bin danmu -- --config config.toml --room-id 12345 --debug
+```
+
+## Technical Configuration Notes
 
 - The project uses Rust edition 2021/2024
 - WebSocket connections use `tungstenite` crate
@@ -124,6 +189,7 @@ cd danmu-tts
 - Browser cookie reading via `sqlite` crate
 - Async runtime provided by `tokio`
 - CLI parsing via `clap` with derive features
+- Configuration parsing via `serde` and `toml` crates
 
 ## Plugin Development
 
