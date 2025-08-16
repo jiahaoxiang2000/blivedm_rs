@@ -36,7 +36,7 @@ pub struct TtsConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TriggerConfig {
     pub keywords: Vec<String>,
-    pub responses: Vec<String>,
+    pub response: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,7 +79,7 @@ impl TriggerConfig {
     pub fn to_plugin_trigger(&self) -> plugins::auto_reply::TriggerConfig {
         plugins::auto_reply::TriggerConfig {
             keywords: self.keywords.clone(),
-            responses: self.responses.clone(),
+            response: self.response.clone(),
         }
     }
 }
@@ -168,11 +168,11 @@ impl Config {
                 triggers: vec![
                     TriggerConfig {
                         keywords: vec!["你好".to_string(), "hello".to_string()],
-                        responses: vec!["欢迎来到直播间！".to_string(), "Hello! Welcome!".to_string()],
+                        response: "欢迎来到直播间！".to_string(),
                     },
                     TriggerConfig {
                         keywords: vec!["谢谢".to_string(), "thanks".to_string()],
-                        responses: vec!["不客气～".to_string(), "You're welcome!".to_string()],
+                        response: "不客气～".to_string(),
                     },
                 ],
             }),

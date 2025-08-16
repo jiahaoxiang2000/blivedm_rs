@@ -161,7 +161,7 @@ fn main() {
                 cooldown_seconds: auto_reply_config.cooldown_seconds,
                 triggers: auto_reply_config.triggers.iter().map(|t| config::TriggerConfig {
                     keywords: t.keywords.clone(),
-                    responses: t.responses.clone(),
+                    response: t.response.clone(),
                 }).collect(),
             })
         } else {

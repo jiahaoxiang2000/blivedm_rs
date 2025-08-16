@@ -12,8 +12,8 @@ use tokio::runtime::Runtime;
 pub struct TriggerConfig {
     /// Keywords that trigger this response
     pub keywords: Vec<String>,
-    /// Possible responses (one will be selected randomly)
-    pub responses: Vec<String>,
+    /// Response message to send
+    pub response: String,
 }
 
 /// Configuration for the auto reply plugin
@@ -35,11 +35,11 @@ impl Default for AutoReplyConfig {
             triggers: vec![
                 TriggerConfig {
                     keywords: vec!["你好".to_string(), "hello".to_string()],
-                    responses: vec!["欢迎来到直播间！".to_string(), "Hello! Welcome!".to_string()],
+                    response: "欢迎来到直播间！".to_string(),
                 },
                 TriggerConfig {
                     keywords: vec!["谢谢".to_string(), "thanks".to_string()],
-                    responses: vec!["不客气～".to_string(), "You're welcome!".to_string()],
+                    response: "不客气～".to_string(),
                 },
             ],
         }
@@ -110,23 +110,12 @@ impl AutoReplyHandler {
         None
     }
 
-    /// Select a random response from the trigger
+    /// Get the response from the trigger
     fn select_response(&self, trigger: &TriggerConfig) -> Option<String> {
-        if trigger.responses.is_empty() {
+        if trigger.response.is_empty() {
             return None;
         }
-        
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        use std::time::SystemTime;
-        
-        // Simple pseudo-random selection based on current time
-        let mut hasher = DefaultHasher::new();
-        SystemTime::now().hash(&mut hasher);
-        let hash = hasher.finish();
-        
-        let index = (hash as usize) % trigger.responses.len();
-        Some(trigger.responses[index].clone())
+        Some(trigger.response.clone())
     }
 
     /// Check if enough time has passed since the last reply
@@ -313,7 +302,7 @@ mod tests {
         let trigger = &handler.config.triggers[0];
         let response = handler.select_response(trigger);
         assert!(response.is_some());
-        assert!(trigger.responses.contains(&response.unwrap()));
+        assert_eq!(response.unwrap(), trigger.response);
     }
 
     #[test]
@@ -363,7 +352,7 @@ mod tests {
             triggers: vec![
                 TriggerConfig {
                     keywords: vec!["test".to_string()],
-                    responses: vec!["test response".to_string()],
+                    response: "test response".to_string(),
                 }
             ],
         };
