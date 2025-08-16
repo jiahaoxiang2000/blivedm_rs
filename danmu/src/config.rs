@@ -9,6 +9,8 @@ pub struct Config {
     #[serde(default)]
     pub tts: Option<TtsConfig>,
     #[serde(default)]
+    pub auto_reply: Option<AutoReplyConfig>,
+    #[serde(default)]
     pub debug: Option<bool>,
 }
 
@@ -29,6 +31,57 @@ pub struct TtsConfig {
     pub volume: Option<f32>,
     pub command: Option<String>,
     pub args: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TriggerConfig {
+    pub keywords: Vec<String>,
+    pub responses: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoReplyConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_cooldown")]
+    pub cooldown_seconds: u64,
+    #[serde(default)]
+    pub triggers: Vec<TriggerConfig>,
+}
+
+impl Default for AutoReplyConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            cooldown_seconds: default_cooldown(),
+            triggers: vec![],
+        }
+    }
+}
+
+fn default_cooldown() -> u64 {
+    5
+}
+
+impl AutoReplyConfig {
+    /// Convert to plugins::auto_reply::AutoReplyConfig
+    pub fn to_plugin_config(&self) -> plugins::auto_reply::AutoReplyConfig {
+        plugins::auto_reply::AutoReplyConfig {
+            enabled: self.enabled,
+            cooldown_seconds: self.cooldown_seconds,
+            triggers: self.triggers.iter().map(|t| t.to_plugin_trigger()).collect(),
+        }
+    }
+}
+
+impl TriggerConfig {
+    /// Convert to plugins::auto_reply::TriggerConfig
+    pub fn to_plugin_trigger(&self) -> plugins::auto_reply::TriggerConfig {
+        plugins::auto_reply::TriggerConfig {
+            keywords: self.keywords.clone(),
+            responses: self.responses.clone(),
+        }
+    }
 }
 
 impl Config {
@@ -109,6 +162,20 @@ impl Config {
                 command: None,
                 args: None,
             }),
+            auto_reply: Some(AutoReplyConfig {
+                enabled: false,
+                cooldown_seconds: 5,
+                triggers: vec![
+                    TriggerConfig {
+                        keywords: vec!["你好".to_string(), "hello".to_string()],
+                        responses: vec!["欢迎来到直播间！".to_string(), "Hello! Welcome!".to_string()],
+                    },
+                    TriggerConfig {
+                        keywords: vec!["谢谢".to_string(), "thanks".to_string()],
+                        responses: vec!["不客气～".to_string(), "You're welcome!".to_string()],
+                    },
+                ],
+            }),
             debug: None,
         };
 
@@ -134,6 +201,7 @@ impl Config {
         tts_volume: &Option<f32>,
         tts_command: &Option<String>,
         tts_args: &Option<String>,
+        auto_reply: &Option<AutoReplyConfig>,
         debug: bool,
     ) {
         println!("=== Effective Configuration ===");
@@ -158,6 +226,15 @@ impl Config {
         println!("  volume: {:?}", tts_volume);
         println!("  command: {:?}", tts_command);
         println!("  args: {:?}", tts_args);
+
+        println!("Auto Reply:");
+        if let Some(auto_reply_config) = auto_reply {
+            println!("  enabled: {}", auto_reply_config.enabled);
+            println!("  cooldown_seconds: {}", auto_reply_config.cooldown_seconds);
+            println!("  triggers: {} configured", auto_reply_config.triggers.len());
+        } else {
+            println!("  enabled: false (not configured)");
+        }
 
         println!("Debug: {}", debug);
         println!("===============================");

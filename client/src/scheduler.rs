@@ -4,9 +4,31 @@ use std::sync::Arc;
 
 use crate::models;
 
+/// Context information passed to event handlers
+#[derive(Debug, Clone)]
+pub struct EventContext {
+    /// Bilibili cookies for authentication
+    pub cookies: Option<String>,
+    /// Room ID where the event occurred
+    pub room_id: u64,
+}
+
+impl EventContext {
+    /// Create a new EventContext with automatic cookie detection
+    pub fn new_with_auto_cookies(room_id: u64) -> Self {
+        let cookies = crate::auth::get_cookies_or_browser(None);
+        Self { cookies, room_id }
+    }
+
+    /// Create a new EventContext with provided cookies
+    pub fn new(cookies: Option<String>, room_id: u64) -> Self {
+        Self { cookies, room_id }
+    }
+}
+
 /// Trait for event handlers (plugins) that process BiliMessage.
 pub trait EventHandler: Send + Sync {
-    fn handle(&self, msg: &BiliMessage);
+    fn handle(&self, msg: &BiliMessage, context: &EventContext);
 }
 
 /// Scheduling mode: Parallel or Sequential.
@@ -19,11 +41,16 @@ pub enum ScheduleMode {
 pub struct Scheduler {
     /// Each stage is a Vec of handlers to run in parallel; stages run sequentially.
     stages: Vec<Vec<Arc<dyn EventHandler>>>,
+    /// Context information for event handlers
+    context: EventContext,
 }
 
 impl Scheduler {
-    pub fn new() -> Self {
-        Scheduler { stages: Vec::new() }
+    pub fn new(context: EventContext) -> Self {
+        Scheduler { 
+            stages: Vec::new(),
+            context,
+        }
     }
 
     /// Add a new stage (group of handlers to run in parallel)
@@ -42,9 +69,10 @@ impl Scheduler {
             let mut handles = vec![];
             for handler in stage {
                 let msg = msg.clone();
+                let context = self.context.clone();
                 let handler = Arc::clone(handler);
                 handles.push(std::thread::spawn(move || {
-                    handler.handle(&msg);
+                    handler.handle(&msg, &context);
                 }));
             }
             // Wait for all handlers in this stage to finish before next stage
@@ -70,7 +98,7 @@ mod tests {
         last_msg: Arc<Mutex<Option<BiliMessage>>>,
     }
     impl super::EventHandler for AssertHandler {
-        fn handle(&self, msg: &BiliMessage) {
+        fn handle(&self, msg: &BiliMessage, _context: &super::EventContext) {
             self.called.store(true, Ordering::SeqCst);
             let mut lock = self.last_msg.lock().unwrap();
             *lock = Some(msg.clone());
@@ -86,7 +114,11 @@ mod tests {
             called: Arc::clone(&called),
             last_msg: Arc::clone(&last_msg),
         };
-        let mut scheduler = super::Scheduler::new();
+        let context = super::EventContext {
+            cookies: Some("test_cookies".to_string()),
+            room_id: 12345,
+        };
+        let mut scheduler = super::Scheduler::new(context);
         scheduler.add_sequential_handler(Arc::new(handler));
 
         // Send a test message
@@ -116,7 +148,7 @@ mod tests {
             counter: Arc<AtomicUsize>,
         }
         impl super::EventHandler for CounterHandler {
-            fn handle(&self, _msg: &BiliMessage) {
+            fn handle(&self, _msg: &BiliMessage, _context: &super::EventContext) {
                 self.counter.fetch_add(1, Ordering::SeqCst);
             }
         }
@@ -135,7 +167,11 @@ mod tests {
             counter: Arc::clone(&counter3),
         });
 
-        let mut scheduler = super::Scheduler::new();
+        let context = super::EventContext {
+            cookies: Some("test_cookies".to_string()),
+            room_id: 12345,
+        };
+        let mut scheduler = super::Scheduler::new(context);
         // Add a parallel stage (handler1 and handler2)
         scheduler.add_stage(vec![handler1, handler2]);
         // Add a sequential stage (handler3)

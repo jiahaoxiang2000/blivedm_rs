@@ -1,6 +1,6 @@
 use base64::{Engine as _, engine::general_purpose};
 use client::models::BiliMessage;
-use client::scheduler::EventHandler;
+use client::scheduler::{EventHandler, EventContext};
 use log::{debug, error, info, warn};
 use rodio::{Decoder, OutputStream, Sink};
 use serde::{Deserialize, Serialize};
@@ -326,7 +326,7 @@ impl TtsHandler {
 }
 
 impl EventHandler for TtsHandler {
-    fn handle(&self, msg: &BiliMessage) {
+    fn handle(&self, msg: &BiliMessage, _context: &EventContext) {
         if let BiliMessage::Danmu { user, text } = msg {
             let message = format!("{}说：{}", user, text);
             // Send message to the queue for sequential processing
@@ -351,7 +351,8 @@ mod tests {
             user: "测试用户".to_string(),
             text: text.clone(),
         };
-        handler.handle(&msg);
+        let context = EventContext { cookies: None, room_id: 12345 };
+        handler.handle(&msg, &context);
     }
 
     #[test]
@@ -369,7 +370,8 @@ mod tests {
             user: "test_user".to_string(),
             text: "hello world".to_string(),
         };
-        handler.handle(&msg);
+        let context = EventContext { cookies: None, room_id: 12345 };
+        handler.handle(&msg, &context);
     }
 
     #[test]
@@ -391,7 +393,8 @@ mod tests {
                 user: user.to_string(),
                 text: text.to_string(),
             };
-            handler.handle(&msg);
+            let context = EventContext { cookies: None, room_id: 12345 };
+        handler.handle(&msg, &context);
         }
 
         // Give the worker thread some time to process the queue
@@ -410,7 +413,8 @@ mod tests {
             user: "test_user".to_string(),
             text: "test message".to_string(),
         };
-        handler.handle(&msg);
+        let context = EventContext { cookies: None, room_id: 12345 };
+        handler.handle(&msg, &context);
 
         // Give the worker thread some time to process the message
         std::thread::sleep(std::time::Duration::from_millis(50));
@@ -428,7 +432,8 @@ mod tests {
             user: "用户".to_string(),
             text: "你好".to_string(),
         };
-        handler.handle(&msg);
+        let context = EventContext { cookies: None, room_id: 12345 };
+        handler.handle(&msg, &context);
     }
 
     #[cfg(target_os = "linux")]
@@ -443,7 +448,8 @@ mod tests {
             user: "用户".to_string(),
             text: "你好".to_string(),
         };
-        handler.handle(&msg);
+        let context = EventContext { cookies: None, room_id: 12345 };
+        handler.handle(&msg, &context);
     }
 
     #[test]
@@ -473,7 +479,8 @@ mod tests {
             user: "test_user".to_string(),
             text: "volume test".to_string(),
         };
-        handler.handle(&msg);
+        let context = EventContext { cookies: None, room_id: 12345 };
+        handler.handle(&msg, &context);
 
         // Test with custom configuration including volume
         let handler_custom = TtsHandler::new_rest_api_with_volume(
@@ -485,6 +492,7 @@ mod tests {
             Some(44100),
             Some(0.8),
         );
-        handler_custom.handle(&msg);
+        let context = EventContext { cookies: None, room_id: 12345 };
+        handler_custom.handle(&msg, &context);
     }
 }

@@ -5,7 +5,8 @@ mod config;
 
 use clap::Parser;
 use config::Config;
-use client::scheduler::Scheduler;
+use client::scheduler::{Scheduler, EventContext};
+use client::get_cookies_or_browser;
 use client::websocket::BiliLiveClient;
 use futures::channel::mpsc;
 use futures::stream::StreamExt;
@@ -75,6 +76,10 @@ struct Args {
     /// Enable debug logging
     #[arg(long)]
     debug: bool,
+
+    /// Enable auto reply plugin
+    #[arg(long)]
+    auto_reply: bool,
 }
 
 fn main() {
@@ -89,6 +94,11 @@ fn main() {
         }
     };
 
+    // Initialize logging with precedence: CLI args > env vars > config file
+    let debug_enabled = args.debug 
+        || env::var("DEBUG").unwrap_or_default() == "1" 
+        || config.debug.unwrap_or(false);
+
     // Load cookies and room_id with precedence: CLI args > env vars > config file > defaults
     let cookies = args.cookies
         .or_else(|| {
@@ -97,16 +107,24 @@ fn main() {
                 .filter(|s| !s.is_empty() && s != "SESSDATA=dummy_sessdata")
         })
         .or_else(|| config.connection.as_ref().and_then(|c| c.cookies.clone()));
+    
+    // If no manual cookies provided, try browser auto-detection
+    let cookies = if cookies.is_none() {
+        if debug_enabled {
+            log::info!("No manual cookies provided, attempting browser auto-detection...");
+        }
+        get_cookies_or_browser(None)
+    } else {
+        if debug_enabled {
+            log::info!("Using manually provided cookies");
+        }
+        cookies
+    };
 
     let room_id = args.room_id
         .or_else(|| env::var("ROOM_ID").ok())
         .or_else(|| config.connection.as_ref().and_then(|c| c.room_id.clone()))
         .unwrap_or_else(|| "24779526".to_string());
-
-    // Initialize logging with precedence: CLI args > env vars > config file
-    let debug_enabled = args.debug 
-        || env::var("DEBUG").unwrap_or_default() == "1" 
-        || config.debug.unwrap_or(false);
 
     // Configure TTS with precedence: CLI args > config file
     let tts_server = args.tts_server.or_else(|| config.tts.as_ref().and_then(|t| t.server.clone()));
@@ -119,8 +137,37 @@ fn main() {
     let tts_command = args.tts_command.or_else(|| config.tts.as_ref().and_then(|t| t.command.clone()));
     let tts_args = args.tts_args.or_else(|| config.tts.as_ref().and_then(|t| t.args.clone()));
 
+    // Configure auto reply with precedence: CLI args > config file
+    let auto_reply_config = if let Some(config_auto_reply) = &config.auto_reply {
+        // Use config file settings, but allow CLI flag to override enabled
+        let mut plugin_config = config_auto_reply.to_plugin_config();
+        if args.auto_reply {
+            plugin_config.enabled = true;
+        }
+        plugin_config
+    } else {
+        // No config file section, use defaults with CLI flag
+        let mut default_config = plugins::auto_reply::AutoReplyConfig::default();
+        default_config.enabled = args.auto_reply;
+        default_config
+    };
+
     // If user wants to see config, print and exit
     if args.print_config {
+        // Create a temporary config struct for display that reflects the effective settings
+        let effective_auto_reply = if auto_reply_config.enabled {
+            Some(config::AutoReplyConfig {
+                enabled: auto_reply_config.enabled,
+                cooldown_seconds: auto_reply_config.cooldown_seconds,
+                triggers: auto_reply_config.triggers.iter().map(|t| config::TriggerConfig {
+                    keywords: t.keywords.clone(),
+                    responses: t.responses.clone(),
+                }).collect(),
+            })
+        } else {
+            None
+        };
+        
         Config::print_effective_config(
             &cookies,
             &room_id,
@@ -133,6 +180,7 @@ fn main() {
             &tts_volume,
             &tts_command,
             &tts_args,
+            &effective_auto_reply,
             debug_enabled,
         );
         std::process::exit(0);
@@ -196,8 +244,21 @@ fn main() {
         }
     });
 
-    // Set up the scheduler and add the terminal display handler
-    let mut scheduler = Scheduler::new();
+    // Set up the scheduler with context and add the terminal display handler
+    if debug_enabled {
+        match &cookies {
+            Some(cookie_str) => {
+                log::debug!("Cookies found and passed to context: {}...", 
+                    &cookie_str.chars().take(50).collect::<String>());
+            }
+            None => {
+                log::warn!("No cookies found for EventContext - auto-reply will not be able to send messages");
+            }
+        }
+    }
+    
+    let context = EventContext::new(cookies.clone(), room_id.parse::<u64>().unwrap_or(0));
+    let mut scheduler = Scheduler::new(context);
     let terminal_handler = Arc::new(TerminalDisplayHandler);
     scheduler.add_sequential_handler(terminal_handler);
 
@@ -224,6 +285,15 @@ fn main() {
         println!("TTS configured with local command");
     } else {
         println!("No TTS configuration provided. Use --tts-server or --tts-command to enable TTS.");
+    }
+
+    // Add auto reply plugin if enabled
+    if auto_reply_config.enabled {
+        let auto_reply_handler = plugins::auto_reply_handler(auto_reply_config);
+        scheduler.add_sequential_handler(auto_reply_handler);
+        println!("Auto reply plugin enabled");
+    } else {
+        println!("Auto reply plugin disabled. Use --auto-reply or configure in config file to enable.");
     }
 
     // Print configuration information

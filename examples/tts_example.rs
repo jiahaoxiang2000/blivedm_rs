@@ -15,7 +15,7 @@
 // For local testing, you can also run the server on localhost:
 // let tts_handler = tts_handler_default("http://localhost:8000".to_string());
 use client::models::BiliMessage;
-use client::scheduler::Scheduler;
+use client::scheduler::{Scheduler, EventContext};
 use plugins::{tts_handler_command, tts_handler_default};
 
 fn main() {
@@ -34,7 +34,8 @@ fn main() {
 
 fn test_rest_api_mode() {
     // Create scheduler for REST API TTS
-    let mut scheduler = Scheduler::new();
+    let context = EventContext { cookies: None, room_id: 12345 };
+    let mut scheduler = Scheduler::new(context);
 
     // Add TTS handler with default Chinese voice
     // Make sure the danmu-tts server is running at http://192.168.71.202:8000
@@ -65,7 +66,8 @@ fn test_rest_api_mode() {
 
 fn test_command_mode() {
     // Create scheduler for command-line TTS
-    let mut scheduler = Scheduler::new();
+    let context = EventContext { cookies: None, room_id: 12345 };
+    let mut scheduler = Scheduler::new(context);
 
     // Choose TTS command based on platform
     #[cfg(target_os = "macos")]
