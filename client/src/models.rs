@@ -12,9 +12,9 @@ pub struct DanmuServer {
     pub ws_port: i32,
 }
 
-impl DanmuServer {
-    pub fn deafult() -> DanmuServer {
-        DanmuServer {
+impl Default for DanmuServer {
+    fn default() -> Self {
+        Self {
             host: String::from("broadcastlv.chat.bilibili.com"),
             port: 2243,
             wss_port: 443,

@@ -139,7 +139,7 @@ pub fn gen_damu_list(list: &Value) -> Vec<DanmuServer> {
     let server_list = list.as_array().unwrap();
     let mut res: Vec<DanmuServer> = Vec::new();
     if server_list.len() == 0 {
-        let d = DanmuServer::deafult();
+        let d = DanmuServer::default();
         res.push(d);
     }
     for s in server_list {
