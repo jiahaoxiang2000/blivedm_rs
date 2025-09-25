@@ -16,7 +16,8 @@ reqwest = { version = "0.11.17", default-features = false, features = [
     "rustls-tls",
     "json",
 ] }
-tungstenite = { version = "0.20.1", features = ["rustls-tls-webpki-roots"] }
+native-tls = "0.2.0"
+tungstenite = "0.20.1"
 http = "0.2.11"
 url = "2.3.1"
 brotlic = "0.8.1"

@@ -35,6 +35,11 @@ pub fn tts_handler(
     ))
 }
 
+/// Helper to create the command-based TTS handler as Arc<dyn EventHandler>
+/// For local TTS commands like `say` on macOS or `espeak-ng` on Linux
+pub fn tts_handler_command(tts_command: String, tts_args: Vec<String>) -> Arc<dyn EventHandler> {
+    Arc::new(tts::TtsHandler::new_command(tts_command, tts_args))
+}
 
 /// Helper to create the auto reply handler as Arc<dyn EventHandler>
 pub fn auto_reply_handler(config: auto_reply::AutoReplyConfig) -> Arc<dyn EventHandler> {

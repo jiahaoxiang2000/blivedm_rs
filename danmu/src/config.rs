@@ -28,6 +28,9 @@ pub struct TtsConfig {
     pub quality: Option<String>,
     pub format: Option<String>,
     pub sample_rate: Option<u32>,
+    pub volume: Option<f32>,
+    pub command: Option<String>,
+    pub args: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -155,6 +158,9 @@ impl Config {
                 quality: None,
                 format: None,
                 sample_rate: None,
+                volume: None,
+                command: None,
+                args: None,
             }),
             auto_reply: Some(AutoReplyConfig {
                 enabled: false,
@@ -192,6 +198,9 @@ impl Config {
         tts_quality: &Option<String>,
         tts_format: &Option<String>,
         tts_sample_rate: &Option<u32>,
+        tts_volume: &Option<f32>,
+        tts_command: &Option<String>,
+        tts_args: &Option<String>,
         auto_reply: &Option<AutoReplyConfig>,
         debug: bool,
     ) {
@@ -214,6 +223,9 @@ impl Config {
         println!("  quality: {:?}", tts_quality);
         println!("  format: {:?}", tts_format);
         println!("  sample_rate: {:?}", tts_sample_rate);
+        println!("  volume: {:?}", tts_volume);
+        println!("  command: {:?}", tts_command);
+        println!("  args: {:?}", tts_args);
 
         println!("Auto Reply:");
         if let Some(auto_reply_config) = auto_reply {
