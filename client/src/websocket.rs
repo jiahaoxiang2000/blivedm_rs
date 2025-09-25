@@ -1,10 +1,9 @@
 // src/client/websocket.rs
 //! WebSocket client for Bilibili live danmaku messages (refactored from bili_live_dm)
 
-use native_tls::TlsStream;
 use serde_json::Value;
 use std::net::TcpStream;
-use tungstenite::{client, Message, WebSocket};
+use tungstenite::{connect as tungstenite_connect, Message, WebSocket, stream::MaybeTlsStream};
 
 use url::Url;
 
@@ -16,7 +15,7 @@ use crate::auth::*;
 use crate::models::{AuthMessage, BiliMessage, DanmuServer, MsgHead};
 
 pub struct BiliLiveClient {
-    ws: WebSocket<TlsStream<TcpStream>>,
+    ws: WebSocket<MaybeTlsStream<TcpStream>>,
     auth_msg: String,
     ss: Sender<BiliMessage>,
 }
@@ -220,15 +219,13 @@ pub fn init_server(cookies: &str, room_id: &str) -> (Value, AuthMessage) {
     (server_info.clone(), auth_msg)
 }
 
-pub fn connect(v: Value) -> (WebSocket<TlsStream<TcpStream>>, Response<Option<Vec<u8>>>) {
+pub fn connect(v: Value) -> (WebSocket<MaybeTlsStream<TcpStream>>, Response<Option<Vec<u8>>>) {
     let danmu_server = gen_damu_list(&v);
-    let (host, url, ws_url) = find_server(danmu_server);
-    let connector: native_tls::TlsConnector = native_tls::TlsConnector::new().unwrap();
-    let stream: TcpStream = TcpStream::connect(url).unwrap();
-    let stream: native_tls::TlsStream<TcpStream> =
-        connector.connect(host.as_str(), stream).unwrap();
-    let (socket, resp) =
-        client(Url::parse(ws_url.as_str()).unwrap(), stream).expect("Can't connect");
+    let (_host, _url, ws_url) = find_server(danmu_server);
+
+    // Use tungstenite's built-in TLS support with rustls
+    let (socket, resp) = tungstenite_connect(Url::parse(ws_url.as_str()).unwrap())
+        .expect("Can't connect");
     (socket, resp)
 }
 

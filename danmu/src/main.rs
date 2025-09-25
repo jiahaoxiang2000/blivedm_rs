@@ -61,17 +61,8 @@ struct Args {
     #[arg(long, value_name = "RATE")]
     tts_sample_rate: Option<u32>,
 
-    /// TTS audio volume (0.0 to 1.0)
-    #[arg(long, value_name = "VOLUME")]
-    tts_volume: Option<f32>,
 
-    /// Local TTS command (e.g., "say", "espeak-ng")
-    #[arg(long, value_name = "COMMAND")]
-    tts_command: Option<String>,
 
-    /// Comma-separated arguments for TTS command
-    #[arg(long, value_name = "ARGS", allow_hyphen_values = true)]
-    tts_args: Option<String>,
 
     /// Enable debug logging
     #[arg(long)]
@@ -133,9 +124,6 @@ fn main() {
     let tts_quality = args.tts_quality.or_else(|| config.tts.as_ref().and_then(|t| t.quality.clone()));
     let tts_format = args.tts_format.or_else(|| config.tts.as_ref().and_then(|t| t.format.clone()));
     let tts_sample_rate = args.tts_sample_rate.or_else(|| config.tts.as_ref().and_then(|t| t.sample_rate));
-    let tts_volume = args.tts_volume.or_else(|| config.tts.as_ref().and_then(|t| t.volume));
-    let tts_command = args.tts_command.or_else(|| config.tts.as_ref().and_then(|t| t.command.clone()));
-    let tts_args = args.tts_args.or_else(|| config.tts.as_ref().and_then(|t| t.args.clone()));
 
     // Configure auto reply with precedence: CLI args > config file
     let auto_reply_config = if let Some(config_auto_reply) = &config.auto_reply {
@@ -177,9 +165,6 @@ fn main() {
             &tts_quality,
             &tts_format,
             &tts_sample_rate,
-            &tts_volume,
-            &tts_command,
-            &tts_args,
             &effective_auto_reply,
             debug_enabled,
         );
@@ -264,27 +249,18 @@ fn main() {
 
     if let Some(server_url) = tts_server {
         // REST API TTS configuration
-        let tts_handler = Arc::new(TtsHandler::new_rest_api_with_volume(
+        let tts_handler = Arc::new(TtsHandler::new_rest_api(
             server_url,
             tts_voice,
             tts_backend,
             tts_quality,
             tts_format,
             tts_sample_rate,
-            tts_volume,
         ));
         scheduler.add_sequential_handler(tts_handler);
         println!("TTS configured with REST API server");
-    } else if let Some(tts_cmd) = tts_command {
-        // Command-line TTS configuration
-        let cmd_args = tts_args
-            .map(|s| s.split(',').map(|s| s.to_string()).collect())
-            .unwrap_or_default();
-        let tts_handler = Arc::new(TtsHandler::new_command(tts_cmd, cmd_args));
-        scheduler.add_sequential_handler(tts_handler);
-        println!("TTS configured with local command");
     } else {
-        println!("No TTS configuration provided. Use --tts-server or --tts-command to enable TTS.");
+        println!("No TTS configuration provided. Use --tts-server to enable TTS.");
     }
 
     // Add auto reply plugin if enabled
