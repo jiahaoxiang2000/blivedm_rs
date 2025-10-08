@@ -23,84 +23,49 @@
 
 ## 快速开始
 
-### 使用 Cargo 安装（最简单）
+### 使用 Cargo 安装（推荐）
 
-如果您已安装 Rust，可以直接使用 cargo 安装：
+如果您已安装 Rust，可以直接从 crates.io 安装：
 
 ```bash
 cargo install --locked blivedm
 ```
 
-安装后即可在任何位置使用 `blivedm` 命令：
-
-```bash
-# 自动检测浏览器 cookies 并连接直播间
-blivedm --room-id 24779526
-
-# 使用配置文件
-blivedm --config config.toml
-
-# 使用 TTS 服务器
-blivedm --room-id 24779526 --tts-server http://localhost:8000
-```
-
-### 预构建二进制文件
-
-从 [Releases 页面](https://github.com/jiahaoxiang2000/blivedm_rs/releases) 下载适合您系统的版本：
-
-- **Windows**: `danmu-windows-x86_64.exe`
-- **Linux**: `danmu-linux-x86_64`
-- **macOS Intel**: `danmu-macos-x86_64`
-- **macOS Apple Silicon**: `danmu-macos-arm64`
-
-下载后直接运行：
-
-```bash
-# Windows
-danmu-windows-x86_64.exe --room-id 24779526
-
-# Linux/macOS (需要添加执行权限)
-chmod +x danmu-linux-x86_64
-./danmu-linux-x86_64 --room-id 24779526
-
-# macOS
-chmod +x danmu-macos-x86_64
-./danmu-macos-x86_64 --room-id 24779526
-```
+安装后即可在任何位置使用 `blivedm` 命令。
 
 ### 使用示例
 
 ```bash
 # v0.4.0 新功能：启用自动回复插件
-./danmu-linux-x86_64 --room-id 12345 --auto-reply
+blivedm --room-id 12345 --auto-reply
 
 # 自动检测浏览器 cookies（推荐）
-./danmu-linux-x86_64 --room-id 12345
+blivedm --room-id 24779526
 
 # 使用配置文件
-./danmu-linux-x86_64 --config config.toml
+blivedm --config config.toml
 
 # 查看有效配置
-./danmu-linux-x86_64 --print-config
+blivedm --print-config
 
 # 手动 cookies（必须包含 SESSDATA）
-./danmu-linux-x86_64 --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 12345
+blivedm --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 12345
 
 # 使用 TTS REST API 服务器
-./danmu-linux-x86_64 --room-id 12345 --tts-server http://localhost:8000 --tts-volume 0.7
+blivedm --room-id 12345 --tts-server http://localhost:8000 --tts-volume 0.7
 
 # 使用本地 TTS（macOS）
-./danmu-macos-x86_64 --room-id 12345 --tts-command say --tts-args "-v,Mei-Jia"
+blivedm --room-id 12345 --tts-command say --tts-args "-v,Mei-Jia"
 
 # 使用本地 TTS（Linux）
-./danmu-linux-x86_64 --room-id 12345 --tts-command espeak-ng --tts-args "-v,cmn"
+blivedm --room-id 12345 --tts-command espeak-ng --tts-args "-v,cmn"
 
 # ⚠️ Windows 用户建议：使用 TTS 服务器获得更好的语音体验
 # 本地 PowerShell TTS 存在技术限制，推荐使用远程 TTS 服务器：
-./danmu-windows-x86_64.exe --room-id 12345 --tts-server http://localhost:8000
+blivedm --room-id 12345 --tts-server http://localhost:8000
 
 # 显示所有可用选项
-./danmu-linux-x86_64 --help
+blivedm --help
 ```
 
 ### TTS 服务器设置（Windows 用户推荐）
@@ -181,16 +146,16 @@ debug = false
 
 ```bash
 # 使用指定配置文件
-./danmu-linux-x86_64 --config path/to/config.toml
+blivedm --config path/to/config.toml
 
 # 查看有效配置（调试用）
-./danmu-linux-x86_64 --print-config
+blivedm --print-config
 
 # 命令行参数覆盖配置文件
-./danmu-linux-x86_64 --config config.toml --room-id 12345 --debug
+blivedm --config config.toml --room-id 12345 --debug
 
 # v0.4.0 新功能：启用自动回复功能
-./danmu-linux-x86_64 --config config.toml --auto-reply
+blivedm --config config.toml --auto-reply
 ```
 
 **提示：** 如果未找到配置文件，程序会自动创建示例配置文件 `config.toml.example` 供参考。
