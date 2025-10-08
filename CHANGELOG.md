@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2025-10-08
+
+### Fixed
+- 🔧 Add system dependencies (libasound2-dev, pkg-config, libssl-dev) to GitHub Actions workflow
+- Fix `cargo publish` failing due to missing ALSA libraries in CI
+
 ## [0.4.3] - 2025-10-08
 
 ### Fixed
