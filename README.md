@@ -11,7 +11,7 @@
 - **💬 实时弹幕监控** - 连接 Bilibili 直播间，实时接收弹幕、礼物、进房等消息
 - **🔊 多平台 TTS 支持** - 支持本地 TTS（Windows PowerShell、macOS say、Linux espeak-ng）和远程 TTS 服务器
 - **🎛️ 插件化架构** - 模块化设计，支持自定义插件扩展功能
-- **🖥️ 跨平台支持** - 原生支持 Windows、macOS、Linux，提供预编译二进制文件
+- **🖥️ 跨平台支持** - 原生支持 Windows、macOS、Linux
 - **⚡ 高性能异步** - 基于 Tokio 的异步架构，低资源占用，高并发处理
 - **🔧 灵活配置** - 支持 TOML 配置文件和命令行参数，可自定义 TTS 音量、语音等参数
 
@@ -80,6 +80,7 @@ cd danmu-tts
 ```
 
 **TTS 服务器优势：**
+
 - 🎙️ **高质量语音** - 支持神经网络 TTS 和多种语音引擎
 - 🌐 **多语言支持** - 支持中文、英文等多种语言
 - ⚙️ **灵活配置** - 可自定义语音参数、音调、语速
@@ -94,6 +95,7 @@ cd danmu-tts
 ### 配置文件位置
 
 客户端按以下顺序查找配置文件：
+
 1. `--config` 指定的路径
 2. 当前目录的 `config.toml`
 3. `~/.config/blivedm_rs/config.toml`（XDG 配置目录）
@@ -114,7 +116,7 @@ enabled = true
 triggers = [
     { keywords = ["测试", "test"], response = "这是一个测]试回复" },
 ]
-cooldown_seconds = 3 
+cooldown_seconds = 3
 
 # TTS 配置
 [tts]
@@ -137,6 +139,7 @@ debug = false
 ### 配置优先级
 
 配置值按以下优先级解析（从高到低）：
+
 1. **命令行参数**（最高优先级）
 2. **环境变量**（如 `ROOM_ID`、`Cookie`）
 3. **配置文件**值
@@ -185,7 +188,7 @@ cargo build --release
 ### 系统要求
 
 - **Rust**: 最新稳定版本
-- **Linux**: 
+- **Linux**:
   - 音频支持：`sudo apt-get install libasound2-dev`
   - 构建工具：`sudo apt-get install pkg-config libssl-dev`
   - 可选 TTS：`sudo apt-get install espeak-ng`

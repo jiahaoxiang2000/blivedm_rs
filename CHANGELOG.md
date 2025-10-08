@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6] - 2025-10-08
+
+### Changed
+- 📝 Update README.md formatting and remove precompiled binary reference
+
+### Removed
+- Remove Nix flake configuration files (flake.nix, flake.lock)
+- Remove TTS_USAGE.md documentation file
+
 ## [0.4.5] - 2025-10-08
 
 ### Fixed
