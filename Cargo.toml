@@ -1,3 +1,31 @@
 [workspace]
+members = ["client", "plugins", "examples"]
 
-members = ["client", "danmu", "plugins", "examples"]
+[package]
+name = "bdanmu"
+version = "0.4.1"
+edition = "2024"
+authors = ["isomo <jiahaoxing2000@gmail.com>"]
+description = "Bilibili live room danmaku WebSocket client with TTS and plugin support"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jiahaoxiang2000/blivedm_rs"
+readme = "README.md"
+keywords = ["bilibili", "danmaku", "live", "websocket", "tts"]
+categories = ["command-line-utilities", "network-programming"]
+publish = true
+
+[[bin]]
+name = "bdanmu"
+path = "src/main.rs"
+
+[dependencies]
+client = { path = "client" }
+plugins = { path = "plugins" }
+futures = "0.3"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+log = "0.4"
+env_logger = "0.11.8"
+clap = { version = "4.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+dirs = "5.0"

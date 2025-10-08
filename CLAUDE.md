@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workspace Architecture
 
+- **Root (src/)** - Main CLI executable (`bdanmu`)
 - **`client/`** - Core library (WebSocket, auth, browser cookies)
-- **`danmu/`** - Main CLI executable
 - **`plugins/`** - Plugin system (terminal display, TTS)
 - **`examples/`** - Usage examples
 
@@ -21,16 +21,19 @@ cargo build
 cargo build --release
 cargo build -p client  # specific package
 
+# Install globally
+cargo install --locked --path .
+
 # Run main client (auto-detects browser cookies)
-cargo run --bin danmu -- --room-id 24779526
+cargo run -- --room-id 24779526
 
 # With manual cookies or TTS
-cargo run --bin danmu -- --room-id 24779526 --cookies "SESSDATA=..."
-cargo run --bin danmu -- --room-id 24779526 --tts-server http://localhost:8000
+cargo run -- --room-id 24779526 --cookies "SESSDATA=..."
+cargo run -- --room-id 24779526 --tts-server http://localhost:8000
 
 # Configuration file support
-cargo run --bin danmu -- --config config.toml
-cargo run --bin danmu -- --print-config
+cargo run -- --config config.toml
+cargo run -- --print-config
 
 # Other binaries
 cargo run --bin tts_example
@@ -74,7 +77,7 @@ debug = false
 
 ## Entry Points
 
-- **CLI**: `danmu/src/main.rs`
+- **CLI**: `src/main.rs`
 - **Library**: `client/src/lib.rs`
 - **Plugins**: `plugins/src/lib.rs`
 
@@ -82,5 +85,5 @@ debug = false
 
 1. Implement handlers in `plugins/src/`
 2. Follow patterns from `terminal_display.rs` and `tts.rs`
-3. Register with scheduler in `danmu/src/main.rs`
+3. Register with scheduler in `src/main.rs`
 4. Use async event-driven architecture

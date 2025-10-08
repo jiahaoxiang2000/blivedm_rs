@@ -23,9 +23,30 @@
 
 ## 快速开始
 
-### 预构建二进制文件（推荐）
+### 使用 Cargo 安装（最简单）
 
-现在提供预构建二进制文件！从 [Releases 页面](https://github.com/jiahaoxiang2000/blivedm_rs/releases) 下载适合您系统的版本：
+如果您已安装 Rust，可以直接使用 cargo 安装：
+
+```bash
+cargo install --locked bdanmu
+```
+
+安装后即可在任何位置使用 `bdanmu` 命令：
+
+```bash
+# 自动检测浏览器 cookies 并连接直播间
+bdanmu --room-id 24779526
+
+# 使用配置文件
+bdanmu --config config.toml
+
+# 使用 TTS 服务器
+bdanmu --room-id 24779526 --tts-server http://localhost:8000
+```
+
+### 预构建二进制文件
+
+从 [Releases 页面](https://github.com/jiahaoxiang2000/blivedm_rs/releases) 下载适合您系统的版本：
 
 - **Windows**: `danmu-windows-x86_64.exe`
 - **Linux**: `danmu-linux-x86_64`
@@ -187,13 +208,13 @@ cd blivedm_rs
 cargo build --release
 
 # 运行弹幕客户端（自动检测浏览器 cookies）
-./target/release/danmu --room-id 24779526
+./target/release/bdanmu --room-id 24779526
 
 # 使用配置文件
-./target/release/danmu --config config.toml
+./target/release/bdanmu --config config.toml
 
 # 或使用手动 cookies（必须包含 SESSDATA）
-./target/release/danmu --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 24779526
+./target/release/bdanmu --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 24779526
 ```
 
 ### 系统要求

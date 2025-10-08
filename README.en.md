@@ -29,20 +29,41 @@ A powerful Bilibili live room DM (Danmaku) WebSocket client library for Rust, su
 
 ```bash
 # Just run without cookies - it will auto-detect from your browser!
-cargo run --bin danmu -- --room-id 24779526
+cargo run -- --room-id 24779526
 # Still works with manual cookies if needed
-cargo run --bin danmu -- --room-id 24779526
+cargo run -- --room-id 24779526
 # Or, with explicit argument:
-cargo run --bin danmu -- --room-id 24779526 --cookies "SESSDATA=your_sessdata; other_cookie=..."
+cargo run -- --room-id 24779526 --cookies "SESSDATA=your_sessdata; other_cookie=..."
 ```
 
 Supports Chrome, Firefox, Edge, Chromium, and Opera on Linux, macOS, and Windows. See [Browser Cookie Documentation](docs/browser-cookies.md) for details.
 
 ## Quick Start
 
-### Pre-built Binaries (Recommended)
+### Install via Cargo (Easiest)
 
-Pre-built binaries are now available! Download the appropriate version for your system from the [Releases page](https://github.com/jiahaoxiang2000/blivedm_rs/releases):
+If you have Rust installed, you can install directly via cargo:
+
+```bash
+cargo install --locked bdanmu
+```
+
+After installation, use the `bdanmu` command anywhere:
+
+```bash
+# Auto-detect browser cookies and connect to live room
+bdanmu --room-id 24779526
+
+# Use configuration file
+bdanmu --config config.toml
+
+# With TTS server
+bdanmu --room-id 24779526 --tts-server http://localhost:8000
+```
+
+### Pre-built Binaries
+
+Download the appropriate version for your system from the [Releases page](https://github.com/jiahaoxiang2000/blivedm_rs/releases):
 
 - **Windows**: `danmu-windows-x86_64.exe`
 - **Linux**: `danmu-linux-x86_64`
@@ -122,10 +143,10 @@ cd blivedm_rs
 cargo build --release
 
 # Run the danmu client (auto-detects browser cookies)
-./target/release/danmu --room-id 24779526
+./target/release/bdanmu --room-id 24779526
 
 # Or with manual cookies (must include SESSDATA)
-./target/release/danmu --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 24779526
+./target/release/bdanmu --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 24779526
 ```
 
 ### System Requirements

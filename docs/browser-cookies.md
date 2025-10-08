@@ -20,10 +20,10 @@ Simply run the client without providing SESSDATA:
 
 ```bash
 # No SESSDATA needed - will auto-detect from browser
-cargo run --bin danmu -- --room-id 24779526
+cargo run -- --room-id 24779526
 
 # With debug logging to see detection process
-cargo run --bin danmu -- --room-id 24779526 --debug
+cargo run -- --room-id 24779526 --debug
 ```
 
 ### Manual SESSDATA (Still Supported)
@@ -32,11 +32,11 @@ You can still provide SESSDATA manually if needed:
 
 ```bash
 # Provide SESSDATA explicitly
-cargo run --bin danmu -- --room-id 24779526 --cookies "SESSDATA=your_sessdata_here"
+cargo run -- --room-id 24779526 --cookies "SESSDATA=your_sessdata_here"
 
 # Or via environment variable (still need --room-id flag)
 export SESSDATA="your_sessdata_here"
-cargo run --bin danmu -- --room-id 24779526 --cookies "SESSDATA=$SESSDATA"
+cargo run -- --room-id 24779526 --cookies "SESSDATA=$SESSDATA"
 ```
 
 ### Testing Cookie Detection
@@ -45,9 +45,9 @@ Use the provided test utility to check what cookies are available:
 
 ```bash
 # Note: browser_cookie_test binary was removed from source
-# Cookie detection is now integrated into the main danmu client
+# Cookie detection is now integrated into the main bdanmu client
 # Use --debug flag to see cookie detection details:
-cargo run --bin danmu -- --room-id 24779526 --debug
+cargo run -- --room-id 24779526 --debug
 ```
 
 This will show:
@@ -149,7 +149,7 @@ let client = BiliLiveClient::new("manual_sessdata", "24779526", tx);
 Use `--debug` flag to see detailed information about the cookie detection process:
 
 ```bash
-cargo run --bin danmu -- --room-id 24779526 --debug
+cargo run -- --room-id 24779526 --debug
 ```
 
 This will show:
