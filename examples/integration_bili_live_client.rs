@@ -1,7 +1,7 @@
 // src/bin/integration_bili_live_client.rs
 // Standalone binary for integration_bili_live_client logic
 
-use client::websocket::BiliLiveClient;
+use blivedm::client::websocket::BiliLiveClient;
 use futures::channel::mpsc;
 use futures::stream::StreamExt;
 use std::sync::{Arc, Mutex};

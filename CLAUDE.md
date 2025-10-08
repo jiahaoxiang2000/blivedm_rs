@@ -4,14 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`blivedm_rs` is a Rust workspace implementing a Bilibili live room danmaku WebSocket client with automatic browser cookie detection, TTS capabilities, and plugin architecture.
+`blivedm_rs` is a single-package Rust project implementing a Bilibili live room danmaku WebSocket client with automatic browser cookie detection, TTS capabilities, and plugin architecture.
 
-## Workspace Architecture
+## Project Architecture
 
-- **Root (src/)** - Main CLI executable (`blivedm`)
-- **`client/`** - Core library (WebSocket, auth, browser cookies)
-- **`plugins/`** - Plugin system (terminal display, TTS)
-- **`examples/`** - Usage examples
+This is a **single package** with both library and binary targets:
+
+- **Library** (`src/lib.rs`) - Exports all client and plugin functionality
+- **Binary** (`src/main.rs`) - CLI executable `blivedm`
+- **Client Module** (`src/client/`) - WebSocket, auth, browser cookies
+- **Plugins Module** (`src/plugins/`) - Terminal display, TTS, auto-reply
+- **Examples** (`examples/`) - Usage examples (tts_example, integration_bili_live_client)
 
 ## Development Commands
 
@@ -19,7 +22,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build
 cargo build
 cargo build --release
-cargo build -p client  # specific package
+
+# Build examples
+cargo build --examples
 
 # Install globally
 cargo install --locked --path .
@@ -35,55 +40,40 @@ cargo run -- --room-id 24779526 --tts-server http://localhost:8000
 cargo run -- --config config.toml
 cargo run -- --print-config
 
-# Other binaries
-cargo run --bin tts_example
-cargo run --bin integration_bili_live_client
+# Run examples
+cargo run --example tts_example
+cargo run --example integration_bili_live_client
 
 # Test
 cargo test
-cargo test -p client
 ```
 
 ## Key Components
 
-- **WebSocket Client** (`client/src/websocket.rs`) - `BiliLiveClient` handles connection and message parsing
-- **Authentication** (`client/src/auth.rs`) - Room auth and token management
-- **Browser Cookies** (`client/src/browser_cookies.rs`) - Auto-detects SESSDATA from major browsers
-- **Plugin System** (`plugins/src/`) - Terminal display and TTS functionality
-- **Scheduler** (`client/src/scheduler.rs`) - Event-driven message processing
-
-## Configuration
-
-TOML configuration files supported with precedence: CLI args > env vars > config file > defaults.
-
-Config locations: `--config path`, `config.toml`, `~/.config/blivedm_rs/config.toml`
-
-```toml
-[connection]
-room_id = "24779526"
-
-[tts]
-server = "http://localhost:8000"
-volume = 0.8
-
-debug = false
-```
-
-## System Dependencies
-
-**Linux**: `sudo apt-get install libasound2-dev pkg-config libssl-dev espeak-ng`
-**macOS**: Uses built-in `say` command
-**External TTS**: Clone `https://github.com/jiahaoxiang2000/danmu-tts.git`
+- **WebSocket Client** (`src/client/websocket.rs`) - `BiliLiveClient` handles connection and message parsing
+- **Authentication** (`src/client/auth.rs`) - Room auth and token management
+- **Browser Cookies** (`src/client/browser_cookies.rs`) - Auto-detects SESSDATA from major browsers
+- **Plugin System** (`src/plugins/`) - Terminal display, TTS, and auto-reply functionality
+- **Scheduler** (`src/client/scheduler.rs`) - Event-driven message processing
 
 ## Entry Points
 
-- **CLI**: `src/main.rs`
-- **Library**: `client/src/lib.rs`
-- **Plugins**: `plugins/src/lib.rs`
+- **Library**: `src/lib.rs` - Exports all modules (client, plugins)
+- **Binary**: `src/main.rs` - CLI application
+- **Examples**: `examples/*.rs` - Usage examples
 
-## Plugin Development
+## Release Process
 
-1. Implement handlers in `plugins/src/`
-2. Follow patterns from `terminal_display.rs` and `tts.rs`
-3. Register with scheduler in `src/main.rs`
-4. Use async event-driven architecture
+To publish a new version to crates.io:
+
+1. **Update version in Cargo.toml**: `version = "x.y.z"`
+2. **Commit the version change**: `git commit -am "chore: bump version to x.y.z"`
+3. **Create and push a tag**: `git tag vx.y.z && git push origin vx.y.z`
+
+The GitHub Actions workflow will automatically:
+
+- Verify the tag version matches Cargo.toml version
+- Publish the package to crates.io
+- Create a GitHub release with generated notes
+
+**Important**: The tag version (e.g., `v0.4.2`) must match the Cargo.toml version (e.g., `0.4.2`) or the workflow will fail.

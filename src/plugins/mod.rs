@@ -2,7 +2,7 @@ pub mod terminal_display;
 pub mod tts;
 pub mod auto_reply;
 
-use client::scheduler::EventHandler;
+use crate::client::scheduler::EventHandler;
 use std::sync::Arc;
 
 /// Helper to create the handler as Arc<dyn EventHandler>

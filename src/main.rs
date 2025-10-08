@@ -5,13 +5,13 @@ mod config;
 
 use clap::Parser;
 use config::Config;
-use client::scheduler::{Scheduler, EventContext};
-use client::get_cookies_or_browser;
-use client::websocket::BiliLiveClient;
+use blivedm::client::scheduler::{Scheduler, EventContext};
+use blivedm::client::get_cookies_or_browser;
+use blivedm::client::websocket::BiliLiveClient;
 use futures::channel::mpsc;
 use futures::stream::StreamExt;
-use plugins::terminal_display::TerminalDisplayHandler;
-use plugins::tts::TtsHandler;
+use blivedm::plugins::terminal_display::TerminalDisplayHandler;
+use blivedm::plugins::tts::TtsHandler;
 use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -147,7 +147,7 @@ fn main() {
         plugin_config
     } else {
         // No config file section, use defaults with CLI flag
-        let mut default_config = plugins::auto_reply::AutoReplyConfig::default();
+        let mut default_config = blivedm::plugins::auto_reply::AutoReplyConfig::default();
         default_config.enabled = args.auto_reply;
         default_config
     };
@@ -289,7 +289,7 @@ fn main() {
 
     // Add auto reply plugin if enabled
     if auto_reply_config.enabled {
-        let auto_reply_handler = plugins::auto_reply_handler(auto_reply_config);
+        let auto_reply_handler = blivedm::plugins::auto_reply_handler(auto_reply_config);
         scheduler.add_sequential_handler(auto_reply_handler);
         println!("Auto reply plugin enabled");
     } else {

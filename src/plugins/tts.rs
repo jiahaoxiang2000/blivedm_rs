@@ -1,6 +1,6 @@
 use base64::{Engine as _, engine::general_purpose};
-use client::models::BiliMessage;
-use client::scheduler::{EventHandler, EventContext};
+use crate::client::models::BiliMessage;
+use crate::client::scheduler::{EventHandler, EventContext};
 use log::{debug, error, info, warn};
 use rodio::{Decoder, OutputStream, Sink};
 use serde::{Deserialize, Serialize};

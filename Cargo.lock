@@ -174,25 +174,12 @@ checksum = "2261d10cca569e4643e526d8dc2e62e433cc8aba21ab764233731f8d369bf394"
 name = "blivedm"
 version = "0.4.1"
 dependencies = [
- "blivedm-client",
- "blivedm-plugins",
- "clap",
- "dirs",
- "env_logger",
- "futures",
- "log",
- "serde",
- "tokio",
- "toml",
-]
-
-[[package]]
-name = "blivedm-client"
-version = "0.4.1"
-dependencies = [
+ "base64",
  "brotlic",
  "chrono",
+ "clap",
  "directories",
+ "dirs",
  "env_logger",
  "futures",
  "futures-channel",
@@ -201,26 +188,14 @@ dependencies = [
  "md5",
  "native-tls",
  "reqwest",
+ "rodio",
  "serde",
  "serde_json",
  "sqlite",
  "tokio",
+ "toml",
  "tungstenite",
  "url",
-]
-
-[[package]]
-name = "blivedm-plugins"
-version = "0.4.1"
-dependencies = [
- "base64",
- "blivedm-client",
- "log",
- "reqwest",
- "rodio",
- "serde",
- "serde_json",
- "tokio",
 ]
 
 [[package]]
@@ -626,16 +601,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "examples"
-version = "0.1.0"
-dependencies = [
- "blivedm-client",
- "blivedm-plugins",
- "env_logger",
- "log",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -918,19 +883,6 @@ dependencies = [
  "rustls",
  "tokio",
  "tokio-rustls",
-]
-
-[[package]]
-name = "hyper-tls"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
-dependencies = [
- "bytes",
- "hyper",
- "native-tls",
- "tokio",
- "tokio-native-tls",
 ]
 
 [[package]]
@@ -1709,12 +1661,10 @@ dependencies = [
  "http-body",
  "hyper",
  "hyper-rustls",
- "hyper-tls",
  "ipnet",
  "js-sys",
  "log",
  "mime",
- "native-tls",
  "once_cell",
  "percent-encoding",
  "pin-project-lite",
@@ -1726,7 +1676,6 @@ dependencies = [
  "sync_wrapper",
  "system-configuration",
  "tokio",
- "tokio-native-tls",
  "tokio-rustls",
  "tower-service",
  "url",
@@ -2250,16 +2199,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "tokio-native-tls"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbae76ab933c85776efabc971569dd6119c580d8f5d448769dec1764bf796ef2"
-dependencies = [
- "native-tls",
- "tokio",
 ]
 
 [[package]]

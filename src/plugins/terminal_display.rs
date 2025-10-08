@@ -1,5 +1,5 @@
-use client::models::BiliMessage;
-use client::scheduler::{EventHandler, EventContext};
+use crate::client::models::BiliMessage;
+use crate::client::scheduler::{EventHandler, EventContext};
 
 /// A plugin that prints BiliMessages to the terminal.
 pub struct TerminalDisplayHandler;

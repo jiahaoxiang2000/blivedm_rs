@@ -1,107 +1,53 @@
-name: CI and Release
+name: Publish to crates.io
 
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 env:
   CARGO_TERM_COLOR: always
 
 permissions:
   contents: write
-  
+
 jobs:
-  test-and-build:
-    name: Test and Build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: danmu
-            asset_name: danmu-linux-x86_64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: danmu.exe
-            asset_name: danmu-windows-x86_64
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: danmu
-            asset_name: danmu-macos-x86_64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: danmu
-            asset_name: danmu-macos-arm64
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Install system dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libasound2-dev pkg-config libssl-dev
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Cache Cargo build
-        uses: actions/cache@v4
-        with:
-          path: target/
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Build release binary
-        run: cargo build --release --bin danmu --target ${{ matrix.target }}
-
-      - name: Strip binary (Unix)
-        if: matrix.os != 'windows-latest'
-        run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-
-      - name: Upload build artifact
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.asset_name }}
-          path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-
-  release:
-    name: Create GitHub Release
+  publish:
+    name: Publish to crates.io
     runs-on: ubuntu-latest
-    needs: test-and-build
     if: startsWith(github.ref, 'refs/tags/v')
+    environment: release # GitHub environment for Trusted Publishing
+    permissions:
+      id-token: write # Required for OIDC token exchange
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
 
       - name: Get tag name
         id: tag_name
         run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Verify version matches tag
+        run: |
+          CARGO_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          TAG_VERSION="${{ steps.tag_name.outputs.TAG_NAME }}"
+          TAG_VERSION="${TAG_VERSION#v}"
+          if [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: Cargo.toml version ($CARGO_VERSION) does not match tag version ($TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Authenticate with crates.io
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
+      - name: Publish blivedm to crates.io
+        run: cargo publish --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
       - name: Get previous tag
         id: previoustag
@@ -109,99 +55,52 @@ jobs:
           echo "PREVIOUS_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo '')" >> $GITHUB_ENV
           echo "CURRENT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      - name: Prepare release binaries
-        run: |
-          mkdir -p ./release
-          cp "./artifacts/danmu-windows-x86_64/danmu.exe" ./release/danmu-windows-x86_64.exe
-          cp "./artifacts/danmu-linux-x86_64/danmu" ./release/danmu-linux-x86_64
-          cp "./artifacts/danmu-macos-x86_64/danmu" ./release/danmu-macos-x86_64
-          cp "./artifacts/danmu-macos-arm64/danmu" ./release/danmu-macos-arm64
-
       - name: Generate release notes
         id: generate_notes
         run: |
           if [ -n "$PREVIOUS_TAG" ]; then
             echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "## Changes since $PREVIOUS_TAG" >> $GITHUB_ENV
+            echo "## 📦 Published to crates.io" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+            echo "Install with:" >> $GITHUB_ENV
+            echo "\`\`\`bash" >> $GITHUB_ENV
+            echo "cargo install --locked blivedm" >> $GITHUB_ENV
+            echo "\`\`\`" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+            echo "## 📝 Changes since $PREVIOUS_TAG" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             git log --pretty=format:"* %s (%an) [%h](https://github.com/${{ github.repository }}/commit/%H)" $PREVIOUS_TAG..$CURRENT_TAG >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            echo "## Download" >> $GITHUB_ENV
-            echo "- **Windows**: \`danmu-windows-x86_64.exe\`" >> $GITHUB_ENV
-            echo "- **Linux**: \`danmu-linux-x86_64\`" >> $GITHUB_ENV
-            echo "- **macOS Intel**: \`danmu-macos-x86_64\`" >> $GITHUB_ENV
-            echo "- **macOS Apple Silicon**: \`danmu-macos-arm64\`" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "## Building from Source" >> $GITHUB_ENV
-            echo "\`\`\`bash" >> $GITHUB_ENV
-            echo "# Clone the repository" >> $GITHUB_ENV
-            echo "git clone https://github.com/${{ github.repository }}.git" >> $GITHUB_ENV
-            echo "cd blivedm_rs" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "# Build the project" >> $GITHUB_ENV
-            echo "cargo build --release" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "# Run the danmu client (auto-detect cookies from browser)" >> $GITHUB_ENV
-            echo "./target/release/danmu --room-id <ROOM_ID>" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "# Or with manual cookies (must include SESSDATA)" >> $GITHUB_ENV
-            echo "./target/release/danmu --cookies \"SESSDATA=your_sessdata; other_cookie=...\" --room-id <ROOM_ID>" >> $GITHUB_ENV
-            echo "\`\`\`" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "## System Requirements" >> $GITHUB_ENV
-            echo "- **Rust**: Latest stable version" >> $GITHUB_ENV
-            echo "- **Linux**: \`espeak-ng\` for TTS support (\`sudo apt-get install espeak-ng\`)" >> $GITHUB_ENV
-            echo "- **macOS**: Built-in \`say\` command (no additional dependencies)" >> $GITHUB_ENV
-            echo "- **Audio dependencies**: \`alsa-dev\` on Linux, \`pkg-config\`, \`libssl-dev\`" >> $GITHUB_ENV
+            echo "## 📚 Documentation" >> $GITHUB_ENV
+            echo "- [crates.io](https://crates.io/crates/blivedm)" >> $GITHUB_ENV
+            echo "- [GitHub Repository](https://github.com/${{ github.repository }})" >> $GITHUB_ENV
+            echo "- [README](https://github.com/${{ github.repository }}/blob/master/README.md)" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           else
             echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "## Initial Release" >> $GITHUB_ENV
+            echo "## 📦 Published to crates.io" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            echo "### Features" >> $GITHUB_ENV
-            echo "- Bilibili live stream danmu (comment) monitoring" >> $GITHUB_ENV
-            echo "- Text-to-Speech (TTS) support with multiple backends" >> $GITHUB_ENV
-            echo "- REST API TTS integration with configurable voices" >> $GITHUB_ENV
-            echo "- Command-line TTS support (espeak-ng, say)" >> $GITHUB_ENV
-            echo "- Terminal display plugin for danmu messages" >> $GITHUB_ENV
-            echo "- Configurable audio volume control" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "## Download" >> $GITHUB_ENV
-            echo "- **Windows**: \`danmu-windows-x86_64.exe\`" >> $GITHUB_ENV
-            echo "- **Linux**: \`danmu-linux-x86_64\`" >> $GITHUB_ENV
-            echo "- **macOS Intel**: \`danmu-macos-x86_64\`" >> $GITHUB_ENV
-            echo "- **macOS Apple Silicon**: \`danmu-macos-arm64\`" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "### Recent Commits" >> $GITHUB_ENV
-            git log --pretty=format:"* %s (%an) [%h](https://github.com/${{ github.repository }}/commit/%H)" --max-count=10 >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "## Building from Source" >> $GITHUB_ENV
+            echo "Install with:" >> $GITHUB_ENV
             echo "\`\`\`bash" >> $GITHUB_ENV
-            echo "# Clone the repository" >> $GITHUB_ENV
-            echo "git clone https://github.com/${{ github.repository }}.git" >> $GITHUB_ENV
-            echo "cd blivedm_rs" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "# Build the project" >> $GITHUB_ENV
-            echo "cargo build --release" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "# Run the danmu client (auto-detect cookies from browser)" >> $GITHUB_ENV
-            echo "./target/release/danmu --room-id <ROOM_ID>" >> $GITHUB_ENV
-            echo "" >> $GITHUB_ENV
-            echo "# Or with manual cookies (must include SESSDATA)" >> $GITHUB_ENV
-            echo "./target/release/danmu --cookies \"SESSDATA=your_sessdata; other_cookie=...\" --room-id <ROOM_ID>" >> $GITHUB_ENV
+            echo "cargo install --locked blivedm" >> $GITHUB_ENV
             echo "\`\`\`" >> $GITHUB_ENV
             echo "" >> $GITHUB_ENV
-            echo "## System Requirements" >> $GITHUB_ENV
-            echo "- **Rust**: Latest stable version" >> $GITHUB_ENV
-            echo "- **Linux**: \`espeak-ng\` for TTS support (\`sudo apt-get install espeak-ng\`)" >> $GITHUB_ENV
-            echo "- **macOS**: Built-in \`say\` command (no additional dependencies)" >> $GITHUB_ENV
-            echo "- **Audio dependencies**: \`alsa-dev\` on Linux, \`pkg-config\`, \`libssl-dev\`" >> $GITHUB_ENV
+            echo "## ✨ Features" >> $GITHUB_ENV
+            echo "- 🔍 Smart Cookie Detection - Auto-detect from browsers" >> $GITHUB_ENV
+            echo "- 💬 Real-time Danmaku Monitoring" >> $GITHUB_ENV
+            echo "- 🔊 Multi-platform TTS Support" >> $GITHUB_ENV
+            echo "- 🎛️ Plugin Architecture" >> $GITHUB_ENV
+            echo "- 🖥️ Cross-platform Support" >> $GITHUB_ENV
+            echo "" >> $GITHUB_ENV
+            echo "## 📚 Documentation" >> $GITHUB_ENV
+            echo "- [crates.io](https://crates.io/crates/blivedm)" >> $GITHUB_ENV
+            echo "- [GitHub Repository](https://github.com/${{ github.repository }})" >> $GITHUB_ENV
+            echo "- [README](https://github.com/${{ github.repository }}/blob/master/README.md)" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
           fi
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag_name.outputs.TAG_NAME }}
@@ -209,10 +108,5 @@ jobs:
           body: ${{ env.RELEASE_NOTES }}
           draft: false
           prerelease: false
-          files: |
-            ./release/danmu-windows-x86_64.exe
-            ./release/danmu-linux-x86_64
-            ./release/danmu-macos-x86_64
-            ./release/danmu-macos-arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

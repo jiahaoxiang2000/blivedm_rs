@@ -64,9 +64,9 @@ fn default_cooldown() -> u64 {
 }
 
 impl AutoReplyConfig {
-    /// Convert to plugins::auto_reply::AutoReplyConfig
-    pub fn to_plugin_config(&self) -> plugins::auto_reply::AutoReplyConfig {
-        plugins::auto_reply::AutoReplyConfig {
+    /// Convert to blivedm::plugins::auto_reply::AutoReplyConfig
+    pub fn to_plugin_config(&self) -> blivedm::plugins::auto_reply::AutoReplyConfig {
+        blivedm::plugins::auto_reply::AutoReplyConfig {
             enabled: self.enabled,
             cooldown_seconds: self.cooldown_seconds,
             triggers: self.triggers.iter().map(|t| t.to_plugin_trigger()).collect(),
@@ -75,9 +75,9 @@ impl AutoReplyConfig {
 }
 
 impl TriggerConfig {
-    /// Convert to plugins::auto_reply::TriggerConfig
-    pub fn to_plugin_trigger(&self) -> plugins::auto_reply::TriggerConfig {
-        plugins::auto_reply::TriggerConfig {
+    /// Convert to blivedm::plugins::auto_reply::TriggerConfig
+    pub fn to_plugin_trigger(&self) -> blivedm::plugins::auto_reply::TriggerConfig {
+        blivedm::plugins::auto_reply::TriggerConfig {
             keywords: self.keywords.clone(),
             response: self.response.clone(),
         }

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-10-08
+
+### Changed
+- ♻️ **Consolidate workspace into single package structure**
+  - Merged `client`, `plugins`, and `examples` packages into root package
+  - Moved all modules into `src/client/` and `src/plugins/` directories
+  - Added library target (`src/lib.rs`) exporting all functionality
+  - Converted binaries to examples (`examples/` directory)
+  - Simplified dependency management with single Cargo.toml
+  - Updated GitHub release workflow to publish to crates.io with OIDC authentication
+  - Removed duplicate dependencies and streamlined build configuration
+- Updated CLAUDE.md documentation to reflect single-package architecture
+
+### Removed
+- Workspace structure (client/, plugins/, examples/ packages)
+- Redundant Cargo.toml files in subdirectories
+- `tokio-native-tls` and `hyper-tls` dependencies in favor of rustls
+
 ## [0.4.0] - 2025-08-16
 
 ### Added

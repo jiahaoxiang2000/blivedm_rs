@@ -14,9 +14,9 @@
 //
 // For local testing, you can also run the server on localhost:
 // let tts_handler = tts_handler_default("http://localhost:8000".to_string());
-use client::models::BiliMessage;
-use client::scheduler::{Scheduler, EventContext};
-use plugins::{tts_handler_command, tts_handler_default};
+use blivedm::client::models::BiliMessage;
+use blivedm::client::scheduler::{Scheduler, EventContext};
+use blivedm::plugins::{tts_handler_command, tts_handler_default};
 
 fn main() {
     println!("TTS Example - Testing both REST API and Command modes");
