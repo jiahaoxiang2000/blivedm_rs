@@ -141,22 +141,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
-name = "bdanmu"
-version = "0.4.1"
-dependencies = [
- "blivedm-client",
- "blivedm-plugins",
- "clap",
- "dirs",
- "env_logger",
- "futures",
- "log",
- "serde",
- "tokio",
- "toml",
-]
-
-[[package]]
 name = "bindgen"
 version = "0.72.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -185,6 +169,22 @@ name = "bitflags"
 version = "2.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2261d10cca569e4643e526d8dc2e62e433cc8aba21ab764233731f8d369bf394"
+
+[[package]]
+name = "blivedm"
+version = "0.4.1"
+dependencies = [
+ "blivedm-client",
+ "blivedm-plugins",
+ "clap",
+ "dirs",
+ "env_logger",
+ "futures",
+ "log",
+ "serde",
+ "tokio",
+ "toml",
+]
 
 [[package]]
 name = "blivedm-client"

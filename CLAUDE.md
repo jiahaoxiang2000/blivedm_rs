@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workspace Architecture
 
-- **Root (src/)** - Main CLI executable (`bdanmu`)
+- **Root (src/)** - Main CLI executable (`blivedm`)
 - **`client/`** - Core library (WebSocket, auth, browser cookies)
 - **`plugins/`** - Plugin system (terminal display, TTS)
 - **`examples/`** - Usage examples

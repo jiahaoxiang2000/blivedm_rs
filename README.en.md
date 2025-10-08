@@ -45,20 +45,20 @@ Supports Chrome, Firefox, Edge, Chromium, and Opera on Linux, macOS, and Windows
 If you have Rust installed, you can install directly via cargo:
 
 ```bash
-cargo install --locked bdanmu
+cargo install --locked blivedm
 ```
 
-After installation, use the `bdanmu` command anywhere:
+After installation, use the `blivedm` command anywhere:
 
 ```bash
 # Auto-detect browser cookies and connect to live room
-bdanmu --room-id 24779526
+blivedm --room-id 24779526
 
 # Use configuration file
-bdanmu --config config.toml
+blivedm --config config.toml
 
 # With TTS server
-bdanmu --room-id 24779526 --tts-server http://localhost:8000
+blivedm --room-id 24779526 --tts-server http://localhost:8000
 ```
 
 ### Pre-built Binaries
@@ -143,10 +143,10 @@ cd blivedm_rs
 cargo build --release
 
 # Run the danmu client (auto-detects browser cookies)
-./target/release/bdanmu --room-id 24779526
+./target/release/blivedm --room-id 24779526
 
 # Or with manual cookies (must include SESSDATA)
-./target/release/bdanmu --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 24779526
+./target/release/blivedm --cookies "SESSDATA=your_sessdata; other_cookie=..." --room-id 24779526
 ```
 
 ### System Requirements

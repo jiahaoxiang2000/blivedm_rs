@@ -2,7 +2,7 @@
 members = ["client", "plugins", "examples"]
 
 [package]
-name = "bdanmu"
+name = "blivedm"
 version = "0.4.1"
 edition = "2024"
 authors = ["isomo <jiahaoxing2000@gmail.com>"]
@@ -15,7 +15,7 @@ categories = ["command-line-utilities", "network-programming"]
 publish = true
 
 [[bin]]
-name = "bdanmu"
+name = "blivedm"
 path = "src/main.rs"
 
 [dependencies]

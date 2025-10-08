@@ -45,7 +45,7 @@ Use the provided test utility to check what cookies are available:
 
 ```bash
 # Note: browser_cookie_test binary was removed from source
-# Cookie detection is now integrated into the main bdanmu client
+# Cookie detection is now integrated into the main blivedm client
 # Use --debug flag to see cookie detection details:
 cargo run -- --room-id 24779526 --debug
 ```
