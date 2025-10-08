@@ -19,8 +19,8 @@ name = "bdanmu"
 path = "src/main.rs"
 
 [dependencies]
-client = { path = "client" }
-plugins = { path = "plugins" }
+client = { package = "blivedm-client", version = "0.4.1", path = "client" }
+plugins = { package = "blivedm-plugins", version = "0.4.1", path = "plugins" }
 futures = "0.3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 log = "0.4"

@@ -144,13 +144,13 @@ checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 name = "bdanmu"
 version = "0.4.1"
 dependencies = [
+ "blivedm-client",
+ "blivedm-plugins",
  "clap",
- "client",
  "dirs",
  "env_logger",
  "futures",
  "log",
- "plugins",
  "serde",
  "tokio",
  "toml",
@@ -185,6 +185,43 @@ name = "bitflags"
 version = "2.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2261d10cca569e4643e526d8dc2e62e433cc8aba21ab764233731f8d369bf394"
+
+[[package]]
+name = "blivedm-client"
+version = "0.4.1"
+dependencies = [
+ "brotlic",
+ "chrono",
+ "directories",
+ "env_logger",
+ "futures",
+ "futures-channel",
+ "http",
+ "log",
+ "md5",
+ "native-tls",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlite",
+ "tokio",
+ "tungstenite",
+ "url",
+]
+
+[[package]]
+name = "blivedm-plugins"
+version = "0.4.1"
+dependencies = [
+ "base64",
+ "blivedm-client",
+ "log",
+ "reqwest",
+ "rodio",
+ "serde",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "block-buffer"
@@ -339,29 +376,6 @@ name = "claxon"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4bfbf56724aa9eca8afa4fcfadeb479e722935bb2a0900c2d37e0cc477af0688"
-
-[[package]]
-name = "client"
-version = "0.1.0"
-dependencies = [
- "brotlic",
- "chrono",
- "directories",
- "env_logger",
- "futures",
- "futures-channel",
- "http",
- "log",
- "md5",
- "native-tls",
- "reqwest",
- "serde",
- "serde_json",
- "sqlite",
- "tokio",
- "tungstenite",
- "url",
-]
 
 [[package]]
 name = "colorchoice"
@@ -615,10 +629,10 @@ dependencies = [
 name = "examples"
 version = "0.1.0"
 dependencies = [
- "client",
+ "blivedm-client",
+ "blivedm-plugins",
  "env_logger",
  "log",
- "plugins",
 ]
 
 [[package]]
@@ -1518,20 +1532,6 @@ name = "pkg-config"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
-
-[[package]]
-name = "plugins"
-version = "0.1.0"
-dependencies = [
- "base64",
- "client",
- "log",
- "reqwest",
- "rodio",
- "serde",
- "serde_json",
- "tokio",
-]
 
 [[package]]
 name = "portable-atomic"

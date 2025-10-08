@@ -1,7 +1,14 @@
 [package]
-name = "client"
-version = "0.1.0"
+name = "blivedm-client"
+version = "0.4.1"
 edition = "2021"
+authors = ["isomo <jiahaoxing2000@gmail.com>"]
+description = "Core WebSocket client library for Bilibili live room danmaku with browser cookie detection"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jiahaoxiang2000/blivedm_rs"
+readme = "../README.md"
+keywords = ["bilibili", "websocket", "danmaku", "client"]
+categories = ["network-programming", "api-bindings"]
 
 [lib]
 name = "client"

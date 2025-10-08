@@ -9,7 +9,7 @@ path = "tts_example.rs"
 
 
 [dependencies]
-client = { path = "../client" }
-plugins = { path = "../plugins" }
+client = { package = "blivedm-client", path = "../client" }
+plugins = { package = "blivedm-plugins", path = "../plugins" }
 env_logger = "0.11.8"
 log = "0.4"
