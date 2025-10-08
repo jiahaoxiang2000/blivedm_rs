@@ -67,13 +67,17 @@ cargo test
 To publish a new version to crates.io:
 
 1. **Update version in Cargo.toml**: `version = "x.y.z"`
-2. **Commit the version change**: `git commit -am "chore: bump version to x.y.z"`
-3. **Create and push a tag**: `git tag vx.y.z && git push origin vx.y.z`
+2. **Update Cargo.lock**: `cargo update -p blivedm`
+3. **Commit the version change**: `git add Cargo.toml Cargo.lock && git commit -m "chore: bump version to x.y.z"`
+4. **Push the commit**: `git push`
+5. **Create and push a tag**: `git tag vx.y.z && git push origin vx.y.z`
 
 The GitHub Actions workflow will automatically:
 
 - Verify the tag version matches Cargo.toml version
-- Publish the package to crates.io
+- Publish the package to crates.io using `cargo publish --locked`
 - Create a GitHub release with generated notes
 
-**Important**: The tag version (e.g., `v0.4.2`) must match the Cargo.toml version (e.g., `0.4.2`) or the workflow will fail.
+**Important**:
+- The tag version (e.g., `v0.4.2`) must match the Cargo.toml version (e.g., `0.4.2`) or the workflow will fail
+- Both `Cargo.toml` and `Cargo.lock` must be committed together to ensure `--locked` flag works in CI
