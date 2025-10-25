@@ -338,8 +338,8 @@ impl EventHandler for TtsHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use client::models::BiliMessage;
-    use client::scheduler::EventHandler;
+    use crate::client::models::BiliMessage;
+    use crate::client::scheduler::EventHandler;
 
     #[test]
     fn test_tts_handler_danmu() {

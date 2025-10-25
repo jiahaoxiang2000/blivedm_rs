@@ -278,8 +278,8 @@ impl Clone for AutoReplyHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use client::models::BiliMessage;
-    use client::scheduler::{EventHandler, EventContext};
+    use crate::client::models::BiliMessage;
+    use crate::client::scheduler::{EventHandler, EventContext};
 
     #[test]
     fn test_keyword_matching() {

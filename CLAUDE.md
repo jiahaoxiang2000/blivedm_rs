@@ -62,7 +62,7 @@ cargo test
 - **Binary**: `src/main.rs` - CLI application
 - **Examples**: `examples/*.rs` - Usage examples
 
-## Release Process
+## Rust Release Process
 
 To publish a new version to crates.io:
 
@@ -71,12 +71,6 @@ To publish a new version to crates.io:
 3. **Commit the version change**: `git add Cargo.toml Cargo.lock && git commit -m "chore: bump version to x.y.z"`
 4. **Push the commit**: `git push`
 5. **Create and push a tag**: `git tag vx.y.z && git push origin vx.y.z`
-
-The GitHub Actions workflow will automatically:
-
-- Verify the tag version matches Cargo.toml version
-- Publish the package to crates.io using `cargo publish --locked`
-- Create a GitHub release with generated notes
 
 **Important**:
 - The tag version (e.g., `v0.4.2`) must match the Cargo.toml version (e.g., `0.4.2`) or the workflow will fail
