@@ -226,6 +226,12 @@ cargo build --release
 - [调度器](docs/scheduler.md)：调度器组件概述。
 - [插件](docs/plugins.md)：可用插件及其使用方法。
 
+**B战视频**
+
+- [start point](https://www.bilibili.com/video/BV1F4jizbEGV)
+- [v0.4](https://www.bilibili.com/video/BV1EvbtzNEbj)
+- [v0.5](https://www.bilibili.com/video/BV1gXsZz8EgZ)
+
 ## 参考
 
 - [blivedm](https://github.com/xfgryujk/blivedm)：Bilibili 直播弹幕协议的原始 Python 实现。
