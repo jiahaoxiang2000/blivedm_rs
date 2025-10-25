@@ -4,6 +4,8 @@
 
 [English Version README](README.en.md)
 
+**Bilibili Video** [start point](https://www.bilibili.com/video/BV1F4jizbEGV) [v0.4](https://www.bilibili.com/video/BV1EvbtzNEbj) [v0.5](https://www.bilibili.com/video/BV1gXsZz8EgZ)
+
 ## 🚀 主要功能
 
 - **🖥️ 交互式 TUI 界面** - **v0.5.0 新功能！** 基于 ratatui 的终端用户界面，可滚动消息显示和交互式输入
@@ -225,8 +227,6 @@ cargo build --release
 - [弹幕模块](docs/danmu.md)：弹幕模块的信息。
 - [调度器](docs/scheduler.md)：调度器组件概述。
 - [插件](docs/plugins.md)：可用插件及其使用方法。
-
-**B战视频** [start point](https://www.bilibili.com/video/BV1F4jizbEGV) [v0.4](https://www.bilibili.com/video/BV1EvbtzNEbj) [v0.5](https://www.bilibili.com/video/BV1gXsZz8EgZ)
 
 ## 参考
 
