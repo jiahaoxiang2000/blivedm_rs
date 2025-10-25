@@ -67,6 +67,100 @@ struct SendDanmakuRequest {
     csrf_token: String,
 }
 
+/// Extract CSRF token from cookies string
+pub fn extract_csrf_token(cookies: &str) -> Option<String> {
+    for cookie in cookies.split(';') {
+        let cookie = cookie.trim();
+        if cookie.starts_with("bili_jct=") {
+            return Some(cookie[9..].to_string());
+        }
+    }
+    None
+}
+
+/// Send a danmaku message to the Bilibili live room
+///
+/// # Arguments
+/// * `message` - The text message to send
+/// * `context` - Event context containing cookies and room_id
+///
+/// # Returns
+/// Returns Ok(()) on success, or an error if the request fails
+pub async fn send_danmaku_message(message: &str, context: &EventContext) -> Result<(), Box<dyn std::error::Error>> {
+    let cookies = match &context.cookies {
+        Some(cookies) => cookies,
+        None => {
+            return Err("No cookies available for sending danmaku".into());
+        }
+    };
+
+    let csrf_token = match extract_csrf_token(cookies) {
+        Some(token) => token,
+        None => {
+            return Err("Could not extract CSRF token from cookies".into());
+        }
+    };
+
+    // Current timestamp
+    let rnd = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    let request = SendDanmakuRequest {
+        csrf: csrf_token.clone(),
+        roomid: context.room_id,
+        msg: message.to_string(),
+        rnd,
+        fontsize: 25,
+        color: 16777215, // White color
+        mode: 1,        // Scroll mode
+        bubble: 0,
+        room_type: 0,
+        jumpfrom: 0,
+        reply_mid: 0,
+        reply_attr: 0,
+        reply_uname: String::new(),
+        replay_dmid: String::new(),
+        statistics: r#"{"appId":100,"platform":5}"#.to_string(),
+        csrf_token,
+    };
+
+    // Set up headers
+    let mut headers = HeaderMap::new();
+    headers.insert("Cookie", HeaderValue::from_str(cookies)?);
+    headers.insert("User-Agent", HeaderValue::from_static(
+        "Mozilla/5.0 (X11; Linux x86_64; rv:138.0) Gecko/20100101 Firefox/138.0"
+    ));
+    headers.insert("Referer", HeaderValue::from_str(
+        &format!("https://live.bilibili.com/{}", context.room_id)
+    )?);
+
+    debug!("Sending danmaku: {}", message);
+
+    let http_client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()?;
+
+    let response = http_client
+        .post("https://api.live.bilibili.com/msg/send")
+        .headers(headers)
+        .form(&request)
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        info!("Successfully sent danmaku: {}", message);
+        Ok(())
+    } else {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        warn!("Failed to send danmaku, status: {}", status);
+        debug!("Response body: {}", body);
+        Err(format!("Failed to send danmaku: {} - {}", status, body).into())
+    }
+}
+
 /// Auto reply handler that monitors danmaku for keywords and sends responses
 pub struct AutoReplyHandler {
     config: AutoReplyConfig,
@@ -139,13 +233,7 @@ impl AutoReplyHandler {
 
     /// Extract CSRF token from cookies
     fn extract_csrf_token(&self, cookies: &str) -> Option<String> {
-        for cookie in cookies.split(';') {
-            let cookie = cookie.trim();
-            if cookie.starts_with("bili_jct=") {
-                return Some(cookie[9..].to_string());
-            }
-        }
-        None
+        extract_csrf_token(cookies)
     }
 
     /// Send a danmaku message to the Bilibili API

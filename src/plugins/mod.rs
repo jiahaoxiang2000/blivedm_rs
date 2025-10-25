@@ -5,6 +5,9 @@ pub mod auto_reply;
 use crate::client::scheduler::EventHandler;
 use std::sync::Arc;
 
+// Re-export danmaku sending utility for easy access
+pub use auto_reply::send_danmaku_message;
+
 /// Helper to create the handler as Arc<dyn EventHandler>
 pub fn terminal_display_handler() -> Arc<dyn EventHandler> {
     Arc::new(terminal_display::TerminalDisplayHandler)

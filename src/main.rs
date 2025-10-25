@@ -316,13 +316,50 @@ fn main() {
         }
     });
 
-    // wait the user keyboard input to exit
-    println!("Press Enter to exit...");
-    let mut input = String::new();
-    std::io::stdin()
-        .read_line(&mut input)
-        .expect("Failed to read line");
-    println!("Exiting...");
+    // Interactive chat mode
+    println!("Interactive chat mode enabled.");
+    println!("Type your message and press Enter to send. Type '/quit' or '/exit' to exit.");
+    println!();
+
+    let context_for_chat = EventContext::new(cookies.clone(), room_id.parse::<u64>().unwrap_or(0));
+
+    loop {
+        print!("> ");
+        std::io::Write::flush(&mut std::io::stdout()).expect("Failed to flush stdout");
+
+        let mut input = String::new();
+        match std::io::stdin().read_line(&mut input) {
+            Ok(_) => {
+                let input = input.trim();
+
+                // Check for exit commands
+                if input == "/quit" || input == "/exit" {
+                    println!("Exiting...");
+                    break;
+                }
+
+                // Skip empty lines
+                if input.is_empty() {
+                    continue;
+                }
+
+                // Send the message
+                let message = input.to_string();
+                let context_clone = context_for_chat.clone();
+
+                rt.spawn(async move {
+                    if let Err(e) = blivedm::plugins::send_danmaku_message(&message, &context_clone).await {
+                        eprintln!("Error sending message: {}", e);
+                    }
+                });
+            }
+            Err(e) => {
+                eprintln!("Error reading input: {}", e);
+                break;
+            }
+        }
+    }
+
     // close the client
     match shared_client.lock() {
         Ok(mut _client) => {}
