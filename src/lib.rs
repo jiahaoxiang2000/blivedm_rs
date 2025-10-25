@@ -3,6 +3,7 @@
 
 pub mod client;
 pub mod plugins;
+pub mod tui;
 
 // Re-export commonly used items from client
 pub use client::{

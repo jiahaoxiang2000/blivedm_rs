@@ -58,3 +58,7 @@ chrono = "0.4"
 # Plugin dependencies (TTS)
 base64 = "0.21"
 rodio = "0.17"
+
+# TUI dependencies
+ratatui = "0.29"
+crossterm = "0.28"
