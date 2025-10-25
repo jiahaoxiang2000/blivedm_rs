@@ -106,8 +106,13 @@ fn render_input_box(f: &mut Frame, app: &TuiApp, area: Rect) {
     f.render_widget(paragraph, area);
 
     // Set cursor position
-    // area.x + 1 (left border) + 2 ("> " prefix) + cursor_position
-    let cursor_x = area.x + 1 + 2 + app.cursor_position as u16;
+    // Calculate display width up to cursor position (handles multi-byte characters)
+    use unicode_width::UnicodeWidthStr;
+    let text_before_cursor: String = app.input.chars().take(app.cursor_position).collect();
+    let display_width = text_before_cursor.width();
+
+    // area.x + 1 (left border) + 2 ("> " prefix) + display_width
+    let cursor_x = area.x + 1 + 2 + display_width as u16;
     let cursor_y = area.y + 1; // area.y + 1 (top border)
 
     // Make sure cursor is within bounds

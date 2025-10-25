@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2025-10-25
+
+### Added
+- **✨ Interactive TUI (Terminal User Interface) with ratatui**
+  - Full-featured terminal UI with scrollable message display
+  - Real-time danmaku updates in a dedicated message area
+  - Interactive input mode for sending danmaku messages
+  - Status bar showing room ID and connection info
+  - Keyboard shortcuts: Enter to send, Esc to quit
+  - Shared message buffer architecture for seamless UI updates
+- New `src/tui/` module with app state, event handling, and UI rendering
+- Dependencies: ratatui 0.29, crossterm 0.28
+
+### Changed
+- Refactored TerminalDisplayHandler to use shared message buffer for TUI integration
+- Updated main.rs to integrate TUI event loop with existing WebSocket client
+- Enhanced user experience with non-blocking message input and display
+
+### Fixed
+- 🐛 Fix Chinese character input causing panic in TUI
+  - Properly handle multi-byte UTF-8 characters (Chinese, Japanese, etc.)
+  - Fixed cursor position calculation for display width of multi-byte characters
+  - Added `unicode-width` dependency for accurate cursor positioning
+  - Character insertion, deletion, and cursor movement now work correctly with non-ASCII text
+
 ## [0.4.6] - 2025-10-08
 
 ### Changed

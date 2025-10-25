@@ -95,14 +95,18 @@ impl TuiApp {
 
     /// Handle character input
     pub fn enter_char(&mut self, c: char) {
-        self.input.insert(self.cursor_position, c);
+        // Get byte position from character position
+        let byte_pos = self.byte_index();
+        self.input.insert(byte_pos, c);
         self.cursor_position += 1;
     }
 
     /// Delete character before cursor
     pub fn delete_char(&mut self) {
         if self.cursor_position > 0 {
-            self.input.remove(self.cursor_position - 1);
+            // Get the byte position of the character before cursor
+            let byte_pos = self.byte_index_at(self.cursor_position - 1);
+            self.input.remove(byte_pos);
             self.cursor_position -= 1;
         }
     }
@@ -116,9 +120,28 @@ impl TuiApp {
 
     /// Move cursor right
     pub fn move_cursor_right(&mut self) {
-        if self.cursor_position < self.input.len() {
+        let char_count = self.input.chars().count();
+        if self.cursor_position < char_count {
             self.cursor_position += 1;
         }
+    }
+
+    /// Get byte index for current cursor position (character-based)
+    fn byte_index(&self) -> usize {
+        self.input
+            .char_indices()
+            .nth(self.cursor_position)
+            .map(|(idx, _)| idx)
+            .unwrap_or(self.input.len())
+    }
+
+    /// Get byte index for a specific character position
+    fn byte_index_at(&self, char_pos: usize) -> usize {
+        self.input
+            .char_indices()
+            .nth(char_pos)
+            .map(|(idx, _)| idx)
+            .unwrap_or(self.input.len())
     }
 
     /// Get current input and clear it

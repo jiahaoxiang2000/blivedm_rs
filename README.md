@@ -6,6 +6,7 @@
 
 ## 🚀 主要功能
 
+- **🖥️ 交互式 TUI 界面** - **v0.5.0 新功能！** 基于 ratatui 的终端用户界面，可滚动消息显示和交互式输入
 - **🤖 智能自动回复** - **v0.4.0 新功能！** 基于关键词检测的自动回复系统，支持 Bilibili API 集成
 - **🔍 智能 Cookie 检测** - 自动从主流浏览器（Chrome、Firefox、Edge、Opera）检测登录状态
 - **💬 实时弹幕监控** - 连接 Bilibili 直播间，实时接收弹幕、礼物、进房等消息
@@ -23,12 +24,27 @@
 
 ## 快速开始
 
-### 使用 Cargo 安装（推荐）
+### 安装方式
+
+#### 从 crates.io 安装（推荐）
 
 如果您已安装 Rust，可以直接从 crates.io 安装：
 
 ```bash
 cargo install --locked blivedm
+```
+
+安装后即可在任何位置使用 `blivedm` 命令。
+
+#### 从源码本地构建安装
+
+```bash
+# 克隆仓库
+git clone https://github.com/jiahaoxiang2000/blivedm_rs.git
+cd blivedm_rs
+
+# 构建并安装到本地
+cargo install --locked --path .
 ```
 
 安装后即可在任何位置使用 `blivedm` 命令。
