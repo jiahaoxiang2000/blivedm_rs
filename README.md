@@ -6,6 +6,8 @@
 
 **Bilibili Video** [start point](https://www.bilibili.com/video/BV1F4jizbEGV) [v0.4](https://www.bilibili.com/video/BV1EvbtzNEbj) [v0.5](https://www.bilibili.com/video/BV1gXsZz8EgZ)
 
+<img width="3808" height="2031" alt="Image" src="https://github.com/user-attachments/assets/7982ffbd-fe08-413d-b1a5-4512309ef104" />
+
 ## 🚀 主要功能
 
 - **🖥️ 交互式 TUI 界面** - **v0.5.0 新功能！** 基于 ratatui 的终端用户界面，可滚动消息显示和交互式输入
