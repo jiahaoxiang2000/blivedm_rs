@@ -55,7 +55,15 @@ impl Browser {
             Browser::Firefox => {
                 #[cfg(target_os = "linux")]
                 {
-                    let firefox_dir = home_dir.join(".mozilla/firefox");
+                    let firefox_dir = vec![
+                        home_dir.join(".mozilla/firefox"),
+                        home_dir.join("snap/firefox/common/.mozilla/firefox"),
+                        home_dir.join(".var/app/org.mozilla.firefox/.mozilla/firefox"),
+                        home_dir.join("snap/firefox/current/.mozilla/firefox"),
+                    ]
+                    .into_iter()
+                    .find(|p| p.exists())?;
+
                     Self::find_firefox_profile_cookies(&firefox_dir)
                 }
                 #[cfg(target_os = "macos")]
