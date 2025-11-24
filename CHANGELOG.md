@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2025-11-24
+
+### Added
+- **🐚 Shell auto-completion support**
+  - Generate completion scripts for bash, zsh, fish, elvish, and PowerShell
+  - New `--generate-completion <SHELL>` CLI option
+- **🦊 Firefox Snap and Flatpak support on Linux**
+  - Browser cookie detection now works with Firefox installed via Snap
+  - Browser cookie detection now works with Firefox installed via Flatpak
+
+### Changed
+- Updated README.md documentation with bilibili video formatting improvements
+
 ## [0.5.0] - 2025-10-25
 
 ### Added
