@@ -9,7 +9,8 @@ use blivedm::client::websocket::BiliLiveClient;
 use blivedm::plugins::terminal_display::TerminalDisplayHandler;
 use blivedm::plugins::tts::TtsHandler;
 use blivedm::tui::{TuiApp, run_tui};
-use clap::Parser;
+use clap::{CommandFactory, Parser};
+use clap_complete::{generate, Shell};
 use config::Config;
 use futures::channel::mpsc;
 use futures::stream::StreamExt;
@@ -82,10 +83,21 @@ struct Args {
     /// Enable auto reply plugin
     #[arg(long)]
     auto_reply: bool,
+
+    /// Generate shell completion script (bash, zsh, fish, powershell, elvish)
+    #[arg(long, value_name = "SHELL")]
+    generate_completion: Option<Shell>,
 }
 
 fn main() {
     let args = Args::parse();
+
+    // Handle shell completion generation early (before any other processing)
+    if let Some(shell) = args.generate_completion {
+        let mut cmd = Args::command();
+        generate(shell, &mut cmd, "blivedm", &mut std::io::stdout());
+        return;
+    }
 
     // Load configuration from file first
     let config = match Config::load_from_file(args.config.as_deref()) {
