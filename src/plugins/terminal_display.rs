@@ -25,9 +25,7 @@ impl EventHandler for TerminalDisplayHandler {
             BiliMessage::Gift { user, gift } => {
                 format!("[Gift] {} sent a gift: {}", user, gift)
             }
-            BiliMessage::Unsupported => {
-                "[Unsupported message type]".to_string()
-            }
+            BiliMessage::Unsupported => "[Unsupported message type]".to_string(),
         };
 
         // Add message to buffer using the TuiApp helper method

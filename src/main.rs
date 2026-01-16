@@ -10,7 +10,7 @@ use blivedm::plugins::terminal_display::TerminalDisplayHandler;
 use blivedm::plugins::tts::TtsHandler;
 use blivedm::tui::{TuiApp, run_tui};
 use clap::{CommandFactory, Parser};
-use clap_complete::{generate, Shell};
+use clap_complete::{Shell, generate};
 use config::Config;
 use futures::channel::mpsc;
 use futures::stream::StreamExt;
@@ -270,7 +270,9 @@ fn main() {
         loop {
             match rec_msg.lock() {
                 Ok(mut rec_c) => {
-                    rec_c.recive();
+                    if let Err(e) = rec_c.receive() {
+                        log::error!("{}", e);
+                    }
                 }
                 Err(e) => {
                     eprintln!("Error acquiring lock on stream: {}", e);

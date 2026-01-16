@@ -4,7 +4,7 @@
 use native_tls::TlsStream;
 use serde_json::Value;
 use std::net::TcpStream;
-use tungstenite::{client, Message, WebSocket};
+use tungstenite::{Message, WebSocket, client};
 
 use url::Url;
 
@@ -117,7 +117,7 @@ impl BiliLiveClient {
         }
     }
 
-    pub fn recive(&mut self) {
+    pub fn receive(&mut self) -> Result<(), String> {
         if self.ws.can_read() {
             let msg = self.ws.read();
             match msg {
@@ -126,11 +126,12 @@ impl BiliLiveClient {
                     if res.len() >= 16 {
                         self.parse_ws_message(res);
                     }
+                    Ok(())
                 }
-                Err(_) => {
-                    panic!("read msg error");
-                }
+                Err(e) => Err(format!("read msg error: {}", e)),
             }
+        } else {
+            Ok(())
         }
     }
 }

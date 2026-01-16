@@ -3,11 +3,11 @@
 
 use crate::tui::app::TuiApp;
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, Paragraph},
-    Frame,
 };
 
 /// Render the TUI
@@ -74,18 +74,14 @@ fn render_message_list(f: &mut Frame, app: &TuiApp, area: Rect) {
         "⏸ Paused - Press ↓ to bottom for auto-scroll"
     };
 
-    let title = format!(
-        " Room {} | {} ",
-        app.room_id, scroll_indicator
-    );
+    let title = format!(" Room {} | {} ", app.room_id, scroll_indicator);
 
-    let list = List::new(visible_items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title(title)
-                .border_style(Style::default().fg(Color::White)),
-        );
+    let list = List::new(visible_items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(title)
+            .border_style(Style::default().fg(Color::White)),
+    );
 
     f.render_widget(list, area);
 }

@@ -69,7 +69,11 @@ impl AutoReplyConfig {
         blivedm::plugins::auto_reply::AutoReplyConfig {
             enabled: self.enabled,
             cooldown_seconds: self.cooldown_seconds,
-            triggers: self.triggers.iter().map(|t| t.to_plugin_trigger()).collect(),
+            triggers: self
+                .triggers
+                .iter()
+                .map(|t| t.to_plugin_trigger())
+                .collect(),
         }
     }
 }
@@ -231,7 +235,10 @@ impl Config {
         if let Some(auto_reply_config) = auto_reply {
             println!("  enabled: {}", auto_reply_config.enabled);
             println!("  cooldown_seconds: {}", auto_reply_config.cooldown_seconds);
-            println!("  triggers: {} configured", auto_reply_config.triggers.len());
+            println!(
+                "  triggers: {} configured",
+                auto_reply_config.triggers.len()
+            );
         } else {
             println!("  enabled: false (not configured)");
         }

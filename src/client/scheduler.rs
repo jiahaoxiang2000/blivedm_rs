@@ -47,7 +47,7 @@ pub struct Scheduler {
 
 impl Scheduler {
     pub fn new(context: EventContext) -> Self {
-        Scheduler { 
+        Scheduler {
             stages: Vec::new(),
             context,
         }
@@ -91,7 +91,7 @@ pub fn add(left: u64, right: u64) -> u64 {
 mod tests {
     use crate::models::BiliMessage;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-    use std::sync::{mpsc, Arc, Mutex};
+    use std::sync::{Arc, Mutex, mpsc};
 
     struct AssertHandler {
         called: Arc<AtomicBool>,

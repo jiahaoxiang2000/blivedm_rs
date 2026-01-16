@@ -1,5 +1,5 @@
 use crate::client::models::BiliMessage;
-use crate::client::scheduler::{EventHandler, EventContext};
+use crate::client::scheduler::{EventContext, EventHandler};
 use log::{debug, error, info, warn};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::Serialize;
@@ -86,7 +86,10 @@ pub fn extract_csrf_token(cookies: &str) -> Option<String> {
 ///
 /// # Returns
 /// Returns Ok(()) on success, or an error if the request fails
-pub async fn send_danmaku_message(message: &str, context: &EventContext) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn send_danmaku_message(
+    message: &str,
+    context: &EventContext,
+) -> Result<(), Box<dyn std::error::Error>> {
     let cookies = match &context.cookies {
         Some(cookies) => cookies,
         None => {
@@ -114,7 +117,7 @@ pub async fn send_danmaku_message(message: &str, context: &EventContext) -> Resu
         rnd,
         fontsize: 25,
         color: 16777215, // White color
-        mode: 1,        // Scroll mode
+        mode: 1,         // Scroll mode
         bubble: 0,
         room_type: 0,
         jumpfrom: 0,
@@ -129,12 +132,16 @@ pub async fn send_danmaku_message(message: &str, context: &EventContext) -> Resu
     // Set up headers
     let mut headers = HeaderMap::new();
     headers.insert("Cookie", HeaderValue::from_str(cookies)?);
-    headers.insert("User-Agent", HeaderValue::from_static(
-        "Mozilla/5.0 (X11; Linux x86_64; rv:138.0) Gecko/20100101 Firefox/138.0"
-    ));
-    headers.insert("Referer", HeaderValue::from_str(
-        &format!("https://live.bilibili.com/{}", context.room_id)
-    )?);
+    headers.insert(
+        "User-Agent",
+        HeaderValue::from_static(
+            "Mozilla/5.0 (X11; Linux x86_64; rv:138.0) Gecko/20100101 Firefox/138.0",
+        ),
+    );
+    headers.insert(
+        "Referer",
+        HeaderValue::from_str(&format!("https://live.bilibili.com/{}", context.room_id))?,
+    );
 
     debug!("Sending danmaku: {}", message);
 
@@ -176,10 +183,8 @@ impl AutoReplyHandler {
             .timeout(Duration::from_secs(10))
             .build()
             .expect("Failed to create HTTP client");
-        
-        let runtime = Arc::new(
-            Runtime::new().expect("Failed to create tokio runtime")
-        );
+
+        let runtime = Arc::new(Runtime::new().expect("Failed to create tokio runtime"));
 
         Self {
             config,
@@ -192,7 +197,7 @@ impl AutoReplyHandler {
     /// Check if any keyword matches the message text
     fn find_matching_trigger(&self, text: &str) -> Option<&TriggerConfig> {
         let text_lower = text.to_lowercase();
-        
+
         for trigger in &self.config.triggers {
             for keyword in &trigger.keywords {
                 if text_lower.contains(&keyword.to_lowercase()) {
@@ -200,7 +205,7 @@ impl AutoReplyHandler {
                 }
             }
         }
-        
+
         None
     }
 
@@ -215,7 +220,7 @@ impl AutoReplyHandler {
     /// Check if enough time has passed since the last reply
     fn check_cooldown(&self) -> bool {
         let last_reply = self.last_reply.lock().unwrap();
-        
+
         match *last_reply {
             Some(last_time) => {
                 let elapsed = last_time.elapsed();
@@ -237,7 +242,11 @@ impl AutoReplyHandler {
     }
 
     /// Send a danmaku message to the Bilibili API
-    async fn send_danmaku(&self, message: &str, context: &EventContext) -> Result<(), reqwest::Error> {
+    async fn send_danmaku(
+        &self,
+        message: &str,
+        context: &EventContext,
+    ) -> Result<(), reqwest::Error> {
         let cookies = match &context.cookies {
             Some(cookies) => cookies,
             None => {
@@ -267,7 +276,7 @@ impl AutoReplyHandler {
             rnd,
             fontsize: 25,
             color: 16777215, // White color
-            mode: 1,        // Scroll mode
+            mode: 1,         // Scroll mode
             bubble: 0,
             room_type: 0,
             jumpfrom: 0,
@@ -282,16 +291,22 @@ impl AutoReplyHandler {
         // Set up headers
         let mut headers = HeaderMap::new();
         headers.insert("Cookie", HeaderValue::from_str(cookies).unwrap());
-        headers.insert("User-Agent", HeaderValue::from_static(
-            "Mozilla/5.0 (X11; Linux x86_64; rv:138.0) Gecko/20100101 Firefox/138.0"
-        ));
-        headers.insert("Referer", HeaderValue::from_str(
-            &format!("https://live.bilibili.com/{}", context.room_id)
-        ).unwrap());
+        headers.insert(
+            "User-Agent",
+            HeaderValue::from_static(
+                "Mozilla/5.0 (X11; Linux x86_64; rv:138.0) Gecko/20100101 Firefox/138.0",
+            ),
+        );
+        headers.insert(
+            "Referer",
+            HeaderValue::from_str(&format!("https://live.bilibili.com/{}", context.room_id))
+                .unwrap(),
+        );
 
         debug!("Sending danmaku: {}", message);
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .post("https://api.live.bilibili.com/msg/send")
             .headers(headers)
             .form(&request)
@@ -328,8 +343,11 @@ impl EventHandler for AutoReplyHandler {
 
                 // Select response
                 if let Some(response) = self.select_response(trigger) {
-                    debug!("Auto reply triggered by '{}', responding with '{}'", text, response);
-                    
+                    debug!(
+                        "Auto reply triggered by '{}', responding with '{}'",
+                        text, response
+                    );
+
                     // Update cooldown
                     self.update_last_reply();
 
@@ -367,13 +385,13 @@ impl Clone for AutoReplyHandler {
 mod tests {
     use super::*;
     use crate::client::models::BiliMessage;
-    use crate::client::scheduler::{EventHandler, EventContext};
+    use crate::client::scheduler::{EventContext, EventHandler};
 
     #[test]
     fn test_keyword_matching() {
         let config = AutoReplyConfig::default();
         let handler = AutoReplyHandler::new(config);
-        
+
         // Test keyword matching
         assert!(handler.find_matching_trigger("你好世界").is_some());
         assert!(handler.find_matching_trigger("Hello world").is_some());
@@ -386,7 +404,7 @@ mod tests {
     fn test_response_selection() {
         let config = AutoReplyConfig::default();
         let handler = AutoReplyHandler::new(config);
-        
+
         let trigger = &handler.config.triggers[0];
         let response = handler.select_response(trigger);
         assert!(response.is_some());
@@ -401,19 +419,19 @@ mod tests {
             triggers: vec![],
         };
         let handler = AutoReplyHandler::new(config);
-        
+
         // Initial check should pass
         assert!(handler.check_cooldown());
-        
+
         // Update timestamp
         handler.update_last_reply();
-        
+
         // Should be on cooldown now
         assert!(!handler.check_cooldown());
-        
+
         // Wait for cooldown
         std::thread::sleep(Duration::from_secs(2));
-        
+
         // Should be off cooldown now
         assert!(handler.check_cooldown());
     }
@@ -422,11 +440,11 @@ mod tests {
     fn test_csrf_extraction() {
         let config = AutoReplyConfig::default();
         let handler = AutoReplyHandler::new(config);
-        
+
         let cookies = "SESSDATA=abc123; bili_jct=csrf_token_here; other=value";
         let csrf = handler.extract_csrf_token(cookies);
         assert_eq!(csrf, Some("csrf_token_here".to_string()));
-        
+
         let cookies_no_csrf = "SESSDATA=abc123; other=value";
         let csrf = handler.extract_csrf_token(cookies_no_csrf);
         assert_eq!(csrf, None);
@@ -437,25 +455,23 @@ mod tests {
         let config = AutoReplyConfig {
             enabled: true,
             cooldown_seconds: 0, // No cooldown for testing
-            triggers: vec![
-                TriggerConfig {
-                    keywords: vec!["test".to_string()],
-                    response: "test response".to_string(),
-                }
-            ],
+            triggers: vec![TriggerConfig {
+                keywords: vec!["test".to_string()],
+                response: "test response".to_string(),
+            }],
         };
         let handler = AutoReplyHandler::new(config);
-        
+
         let context = EventContext {
             cookies: Some("bili_jct=test_csrf; SESSDATA=test".to_string()),
             room_id: 12345,
         };
-        
+
         let msg = BiliMessage::Danmu {
             user: "test_user".to_string(),
             text: "this is a test message".to_string(),
         };
-        
+
         // This should trigger the auto reply (but won't actually send due to test environment)
         handler.handle(&msg, &context);
     }

@@ -15,7 +15,7 @@
 // For local testing, you can also run the server on localhost:
 // let tts_handler = tts_handler_default("http://localhost:8000".to_string());
 use blivedm::client::models::BiliMessage;
-use blivedm::client::scheduler::{Scheduler, EventContext};
+use blivedm::client::scheduler::{EventContext, Scheduler};
 use blivedm::plugins::{tts_handler_command, tts_handler_default};
 
 fn main() {
@@ -34,7 +34,10 @@ fn main() {
 
 fn test_rest_api_mode() {
     // Create scheduler for REST API TTS
-    let context = EventContext { cookies: None, room_id: 12345 };
+    let context = EventContext {
+        cookies: None,
+        room_id: 12345,
+    };
     let mut scheduler = Scheduler::new(context);
 
     // Add TTS handler with default Chinese voice
@@ -66,7 +69,10 @@ fn test_rest_api_mode() {
 
 fn test_command_mode() {
     // Create scheduler for command-line TTS
-    let context = EventContext { cookies: None, room_id: 12345 };
+    let context = EventContext {
+        cookies: None,
+        room_id: 12345,
+    };
     let mut scheduler = Scheduler::new(context);
 
     // Choose TTS command based on platform

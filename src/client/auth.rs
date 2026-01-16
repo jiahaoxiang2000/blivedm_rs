@@ -2,8 +2,8 @@
 //! Authentication helpers for Bilibili live danmaku WebSocket client
 
 use md5;
-use reqwest::header::HeaderMap;
 use reqwest::StatusCode;
+use reqwest::header::HeaderMap;
 use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 

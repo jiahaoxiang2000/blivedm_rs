@@ -6,23 +6,10 @@ pub mod plugins;
 pub mod tui;
 
 // Re-export commonly used items from client
-pub use client::{
-    auth,
-    browser_cookies,
-    models,
-    scheduler,
-    websocket,
-    get_cookies_or_browser,
-};
+pub use client::{auth, browser_cookies, get_cookies_or_browser, models, scheduler, websocket};
 
 // Re-export plugin modules and helpers
 pub use plugins::{
-    terminal_display,
-    tts,
-    auto_reply,
-    terminal_display_handler,
-    tts_handler,
-    tts_handler_default,
-    tts_handler_command,
-    auto_reply_handler,
+    auto_reply, auto_reply_handler, terminal_display, terminal_display_handler, tts, tts_handler,
+    tts_handler_command, tts_handler_default,
 };

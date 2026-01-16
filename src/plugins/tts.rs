@@ -1,6 +1,6 @@
-use base64::{Engine as _, engine::general_purpose};
 use crate::client::models::BiliMessage;
-use crate::client::scheduler::{EventHandler, EventContext};
+use crate::client::scheduler::{EventContext, EventHandler};
+use base64::{Engine as _, engine::general_purpose};
 use log::{debug, error, info, warn};
 use rodio::{Decoder, OutputStream, Sink};
 use serde::{Deserialize, Serialize};
@@ -351,7 +351,10 @@ mod tests {
             user: "测试用户".to_string(),
             text: text.clone(),
         };
-        let context = EventContext { cookies: None, room_id: 12345 };
+        let context = EventContext {
+            cookies: None,
+            room_id: 12345,
+        };
         handler.handle(&msg, &context);
     }
 
@@ -370,7 +373,10 @@ mod tests {
             user: "test_user".to_string(),
             text: "hello world".to_string(),
         };
-        let context = EventContext { cookies: None, room_id: 12345 };
+        let context = EventContext {
+            cookies: None,
+            room_id: 12345,
+        };
         handler.handle(&msg, &context);
     }
 
@@ -393,8 +399,11 @@ mod tests {
                 user: user.to_string(),
                 text: text.to_string(),
             };
-            let context = EventContext { cookies: None, room_id: 12345 };
-        handler.handle(&msg, &context);
+            let context = EventContext {
+                cookies: None,
+                room_id: 12345,
+            };
+            handler.handle(&msg, &context);
         }
 
         // Give the worker thread some time to process the queue
@@ -413,7 +422,10 @@ mod tests {
             user: "test_user".to_string(),
             text: "test message".to_string(),
         };
-        let context = EventContext { cookies: None, room_id: 12345 };
+        let context = EventContext {
+            cookies: None,
+            room_id: 12345,
+        };
         handler.handle(&msg, &context);
 
         // Give the worker thread some time to process the message
@@ -432,7 +444,10 @@ mod tests {
             user: "用户".to_string(),
             text: "你好".to_string(),
         };
-        let context = EventContext { cookies: None, room_id: 12345 };
+        let context = EventContext {
+            cookies: None,
+            room_id: 12345,
+        };
         handler.handle(&msg, &context);
     }
 
@@ -448,7 +463,10 @@ mod tests {
             user: "用户".to_string(),
             text: "你好".to_string(),
         };
-        let context = EventContext { cookies: None, room_id: 12345 };
+        let context = EventContext {
+            cookies: None,
+            room_id: 12345,
+        };
         handler.handle(&msg, &context);
     }
 
@@ -479,7 +497,10 @@ mod tests {
             user: "test_user".to_string(),
             text: "volume test".to_string(),
         };
-        let context = EventContext { cookies: None, room_id: 12345 };
+        let context = EventContext {
+            cookies: None,
+            room_id: 12345,
+        };
         handler.handle(&msg, &context);
 
         // Test with custom configuration including volume
@@ -492,7 +513,10 @@ mod tests {
             Some(44100),
             Some(0.8),
         );
-        let context = EventContext { cookies: None, room_id: 12345 };
+        let context = EventContext {
+            cookies: None,
+            room_id: 12345,
+        };
         handler_custom.handle(&msg, &context);
     }
 }

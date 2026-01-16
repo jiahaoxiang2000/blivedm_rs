@@ -55,9 +55,9 @@ pub struct BiliLiveClient {
   
   Send a heartbeat packet to keep the connection alive.
 
-- `pub fn recive(&mut self)`
+- `pub fn receive(&mut self) -> Result<(), String>`
   
-  Receive and process messages from the WebSocket. Handles danmaku and other events, and sends parsed messages to the provided channel.
+  Receive and process messages from the WebSocket. Handles danmaku and other events, and sends parsed messages to the provided channel. Returns `Ok(())` on success, or `Err(String)` if reading from the WebSocket fails.
 
 - `pub fn parse_ws_message(&mut self, resv: Vec<u8>)`
   
@@ -77,7 +77,7 @@ let (tx, _rx) = mpsc::channel(64);
 let mut client = BiliLiveClient::new("<sessdata>", "<room_id>", tx);
 client.send_auth();
 client.send_heart_beat();
-client.recive();
+client.receive();
 // then read the messages from the channel `_rx`
 ```
 
@@ -87,7 +87,7 @@ client.recive();
 
 ```mermaid
 graph TD
-    S[Server] -- "WebSocket frame" --> R[recive]
+    S[Server] -- "WebSocket frame" --> R[receive]
     R -- "Vec<u8>" --> P[parse_ws_message]
     P -- "operation==5/8" --> B[parse_business_message]
     P -- "operation==3" --> L[Log popularity]
@@ -100,7 +100,7 @@ graph TD
 
 The message handling in `BiliLiveClient` works as follows:
 
-1. **Receiving Data**: The `recive()` method reads raw WebSocket frames from the server. If a message is available, it is passed to `parse_ws_message()`.
+1. **Receiving Data**: The `receive()` method reads raw WebSocket frames from the server. If a message is available, it is passed to `parse_ws_message()`.
 2. **Parsing Message Header**: `parse_ws_message()` extracts the protocol header using `get_msg_header()`, which determines the message type (operation code).
 3. **Dispatching by Operation**:
     - If `operation == 5` or `8`: The message is a business message (e.g., danmaku, gift) or a heartbeat reply. The method loops through all protocol packets in the frame, calling `parse_business_message()` for each.
@@ -120,7 +120,7 @@ The message handling in `BiliLiveClient` works as follows:
 
 #### Example Message Flow
 1. Server sends a WebSocket frame.
-2. `recive()` reads the frame.
+2. `receive()` reads the frame.
 3. `parse_ws_message()` splits the frame into protocol packets.
 4. For each packet:
     - If business message, `parse_business_message()` parses and sends to channel.

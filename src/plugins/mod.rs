@@ -1,6 +1,6 @@
+pub mod auto_reply;
 pub mod terminal_display;
 pub mod tts;
-pub mod auto_reply;
 
 use crate::client::scheduler::EventHandler;
 use std::collections::VecDeque;
@@ -10,8 +10,12 @@ use std::sync::{Arc, Mutex};
 pub use auto_reply::send_danmaku_message;
 
 /// Helper to create the handler as Arc<dyn EventHandler>
-pub fn terminal_display_handler(message_buffer: Arc<Mutex<VecDeque<String>>>) -> Arc<dyn EventHandler> {
-    Arc::new(terminal_display::TerminalDisplayHandler::new(message_buffer))
+pub fn terminal_display_handler(
+    message_buffer: Arc<Mutex<VecDeque<String>>>,
+) -> Arc<dyn EventHandler> {
+    Arc::new(terminal_display::TerminalDisplayHandler::new(
+        message_buffer,
+    ))
 }
 
 /// Helper to create the TTS handler as Arc<dyn EventHandler>

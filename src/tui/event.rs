@@ -6,12 +6,9 @@ use crate::tui::ui;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
+use ratatui::{Terminal, backend::CrosstermBackend};
 use std::io;
 use std::time::Duration;
 
@@ -43,11 +40,7 @@ where
 }
 
 /// Main application loop
-fn run_app<B, F>(
-    terminal: &mut Terminal<B>,
-    app: &mut TuiApp,
-    on_message: &mut F,
-) -> io::Result<()>
+fn run_app<B, F>(terminal: &mut Terminal<B>, app: &mut TuiApp, on_message: &mut F) -> io::Result<()>
 where
     B: ratatui::backend::Backend,
     F: FnMut(String),
