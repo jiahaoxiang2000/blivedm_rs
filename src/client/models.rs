@@ -57,9 +57,17 @@ impl AuthMessage {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum BiliMessage {
-    Danmu { user: String, text: String },
-    Gift { user: String, gift: String },
+    Danmu {
+        user: String,
+        text: String,
+    },
+    Gift {
+        user: String,
+        gift: String,
+    },
     // Add more variants as needed
+    Raw(serde_json::Value),
+    #[deprecated(note = "Use Raw variant instead")]
     Unsupported,
 }
 

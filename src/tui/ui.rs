@@ -36,6 +36,8 @@ fn render_message_list(f: &mut Frame, app: &TuiApp, area: Rect) {
                 (Style::default().fg(Color::Cyan), msg.as_str())
             } else if msg.starts_with("[Gift]") {
                 (Style::default().fg(Color::Yellow), msg.as_str())
+            } else if msg.starts_with("[Raw]") {
+                (Style::default().fg(Color::Magenta), msg.as_str())
             } else if msg.starts_with("[Unsupported") {
                 (Style::default().fg(Color::DarkGray), msg.as_str())
             } else if msg.starts_with("[System]") {

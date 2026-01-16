@@ -25,6 +25,9 @@ impl EventHandler for TerminalDisplayHandler {
             BiliMessage::Gift { user, gift } => {
                 format!("[Gift] {} sent a gift: {}", user, gift)
             }
+            BiliMessage::Raw(json) => {
+                format!("[Raw] {}", json["cmd"].as_str().unwrap_or("Unknown"))
+            }
             BiliMessage::Unsupported => "[Unsupported message type]".to_string(),
         };
 
