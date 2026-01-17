@@ -102,9 +102,6 @@ impl BiliLiveClient {
                 let s = String::from_utf8(b.to_vec()).unwrap();
                 let res_json: Value = serde_json::from_str(s.as_str()).unwrap();
                 if let Some(msg) = handle(res_json) {
-                    if let BiliMessage::Unsupported = msg {
-                        return;
-                    }
                     let _ = self.ss.try_send(msg);
                 }
             } else {
@@ -325,7 +322,7 @@ pub fn handle(json: Value) -> Option<BiliMessage> {
             gift: json["info"][1].as_str().unwrap_or("").to_string(),
         }),
         // Add more cases for other types as needed
-        _ => Some(BiliMessage::Unsupported),
+        _ => Some(BiliMessage::Raw(json)),
     }
 }
 
