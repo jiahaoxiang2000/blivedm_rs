@@ -26,6 +26,8 @@ pub struct TuiApp {
     pub should_quit: bool,
     /// Shared online user count (thread-safe, updated from event handler)
     pub online_count: Arc<AtomicU64>,
+    /// Whether to show raw event messages
+    pub show_raw: bool,
 }
 
 impl TuiApp {
@@ -49,6 +51,7 @@ impl TuiApp {
             room_id,
             should_quit: false,
             online_count,
+            show_raw: false,
         }
     }
 
@@ -178,5 +181,10 @@ impl TuiApp {
     /// Quit the application
     pub fn quit(&mut self) {
         self.should_quit = true;
+    }
+
+    /// Toggle raw message visibility
+    pub fn toggle_show_raw(&mut self) {
+        self.show_raw = !self.show_raw;
     }
 }

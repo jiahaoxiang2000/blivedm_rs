@@ -57,6 +57,10 @@ where
                     KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                         app.quit();
                     }
+                    // Toggle raw message display
+                    KeyCode::Char('r') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                        app.toggle_show_raw();
+                    }
                     KeyCode::Esc => {
                         app.quit();
                     }

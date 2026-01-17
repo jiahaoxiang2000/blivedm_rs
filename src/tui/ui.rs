@@ -31,10 +31,14 @@ fn render_message_list(f: &mut Frame, app: &TuiApp, area: Rect) {
     let inner_width = area.width.saturating_sub(2) as usize; // Account for borders
     let visible_height = area.height.saturating_sub(2) as usize; // Account for borders
 
-    // Create wrapped lines with styles
+    // Create wrapped lines with styles, filtering raw messages if disabled
     let mut all_lines: Vec<Line> = Vec::new();
 
     for msg in messages.iter() {
+        // Skip raw messages if show_raw is disabled
+        if !app.show_raw && msg.starts_with("[Raw]") {
+            continue;
+        }
         let style = get_message_style(msg);
         let wrapped = wrap_text(msg, inner_width);
         for line_text in wrapped {
@@ -58,7 +62,7 @@ fn render_message_list(f: &mut Frame, app: &TuiApp, area: Rect) {
         .take(visible_height)
         .collect();
 
-    // Create title with scroll indicator and online count
+    // Create title with scroll indicator, online count, and raw toggle status
     let scroll_indicator = if app.auto_scroll {
         "🔽 Auto-scroll"
     } else {
@@ -72,9 +76,11 @@ fn render_message_list(f: &mut Frame, app: &TuiApp, area: Rect) {
         String::new()
     };
 
+    let raw_indicator = if app.show_raw { "Raw:ON" } else { "Raw:OFF" };
+
     let title = format!(
-        " Room {}{} | {} ",
-        app.room_id, online_display, scroll_indicator
+        " Room {}{} | {} | {} ",
+        app.room_id, online_display, scroll_indicator, raw_indicator
     );
 
     let paragraph = Paragraph::new(visible_lines)
@@ -148,7 +154,7 @@ fn render_input_box(f: &mut Frame, app: &TuiApp, area: Rect) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title(" Input (Enter: send | ↑↓: scroll | ←→: move cursor | Ctrl+C: exit) ")
+                .title(" Input (Enter: send | ↑↓: scroll | Ctrl+R: toggle raw | Ctrl+C: exit) ")
                 .border_style(Style::default().fg(Color::Green)),
         )
         .style(Style::default().fg(Color::White));
