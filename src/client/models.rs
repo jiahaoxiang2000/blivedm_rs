@@ -65,6 +65,13 @@ pub enum BiliMessage {
         user: String,
         gift: String,
     },
+    /// Online rank count message (ONLINE_RANK_COUNT)
+    OnlineRankCount {
+        /// Number of high-energy users in the live room
+        count: u64,
+        /// Number of online users in the live room
+        online_count: u64,
+    },
     // Add more variants as needed
     Raw(serde_json::Value),
     #[deprecated(note = "Use Raw variant instead")]

@@ -2,6 +2,7 @@
 //! TUI application state management
 
 use std::collections::VecDeque;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// Maximum number of messages to keep in buffer
@@ -23,11 +24,22 @@ pub struct TuiApp {
     pub room_id: String,
     /// Whether to quit the application
     pub should_quit: bool,
+    /// Shared online user count (thread-safe, updated from event handler)
+    pub online_count: Arc<AtomicU64>,
 }
 
 impl TuiApp {
     /// Create a new TUI application with shared message buffer
     pub fn new(message_buffer: Arc<Mutex<VecDeque<String>>>, room_id: String) -> Self {
+        Self::with_online_count(message_buffer, room_id, Arc::new(AtomicU64::new(0)))
+    }
+
+    /// Create a new TUI application with shared message buffer and online count
+    pub fn with_online_count(
+        message_buffer: Arc<Mutex<VecDeque<String>>>,
+        room_id: String,
+        online_count: Arc<AtomicU64>,
+    ) -> Self {
         Self {
             message_buffer,
             scroll_offset: 0,
@@ -36,7 +48,18 @@ impl TuiApp {
             cursor_position: 0,
             room_id,
             should_quit: false,
+            online_count,
         }
+    }
+
+    /// Get the current online count
+    pub fn get_online_count(&self) -> u64 {
+        self.online_count.load(Ordering::Relaxed)
+    }
+
+    /// Update the online count (called from event handler)
+    pub fn set_online_count(online_count: &Arc<AtomicU64>, count: u64) {
+        online_count.store(count, Ordering::Relaxed);
     }
 
     /// Add a message to the buffer (called from event handler)

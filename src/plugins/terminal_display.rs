@@ -1,18 +1,35 @@
 use crate::client::models::BiliMessage;
 use crate::client::scheduler::{EventContext, EventHandler};
 use std::collections::VecDeque;
+use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex};
 
 /// A plugin that adds BiliMessages to a shared message buffer for TUI display.
 pub struct TerminalDisplayHandler {
     /// Shared message buffer for TUI
     message_buffer: Arc<Mutex<VecDeque<String>>>,
+    /// Shared online count for TUI title display
+    online_count: Arc<AtomicU64>,
 }
 
 impl TerminalDisplayHandler {
     /// Create a new TerminalDisplayHandler with a shared message buffer
     pub fn new(message_buffer: Arc<Mutex<VecDeque<String>>>) -> Self {
-        Self { message_buffer }
+        Self {
+            message_buffer,
+            online_count: Arc::new(AtomicU64::new(0)),
+        }
+    }
+
+    /// Create a new TerminalDisplayHandler with shared message buffer and online count
+    pub fn with_online_count(
+        message_buffer: Arc<Mutex<VecDeque<String>>>,
+        online_count: Arc<AtomicU64>,
+    ) -> Self {
+        Self {
+            message_buffer,
+            online_count,
+        }
     }
 }
 
@@ -25,9 +42,16 @@ impl EventHandler for TerminalDisplayHandler {
             BiliMessage::Gift { user, gift } => {
                 format!("[Gift] {} sent a gift: {}", user, gift)
             }
+            BiliMessage::OnlineRankCount { online_count, .. } => {
+                // Update the shared online count for TUI title display
+                crate::tui::app::TuiApp::set_online_count(&self.online_count, *online_count);
+                // Don't add to message buffer - just update the title counter
+                return;
+            }
             BiliMessage::Raw(json) => {
                 format!("[Raw] {}", json["cmd"].as_str().unwrap_or("Unknown"))
             }
+            #[allow(deprecated)]
             BiliMessage::Unsupported => "[Unsupported message type]".to_string(),
         };
 

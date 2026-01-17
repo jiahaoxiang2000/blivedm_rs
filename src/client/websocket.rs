@@ -321,6 +321,10 @@ pub fn handle(json: Value) -> Option<BiliMessage> {
                 .to_string(),
             gift: json["info"][1].as_str().unwrap_or("").to_string(),
         }),
+        "ONLINE_RANK_COUNT" => Some(BiliMessage::OnlineRankCount {
+            count: json["data"]["count"].as_u64().unwrap_or(0),
+            online_count: json["data"]["online_count"].as_u64().unwrap_or(0),
+        }),
         // Add more cases for other types as needed
         _ => Some(BiliMessage::Raw(json)),
     }

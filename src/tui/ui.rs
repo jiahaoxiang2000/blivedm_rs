@@ -58,14 +58,24 @@ fn render_message_list(f: &mut Frame, app: &TuiApp, area: Rect) {
         .take(visible_height)
         .collect();
 
-    // Create title with scroll indicator
+    // Create title with scroll indicator and online count
     let scroll_indicator = if app.auto_scroll {
         "🔽 Auto-scroll"
     } else {
         "⏸ Paused - Press ↑↓ to scroll"
     };
 
-    let title = format!(" Room {} | {} ", app.room_id, scroll_indicator);
+    let online_count = app.get_online_count();
+    let online_display = if online_count > 0 {
+        format!(" | 👥 Online: {}", online_count)
+    } else {
+        String::new()
+    };
+
+    let title = format!(
+        " Room {}{} | {} ",
+        app.room_id, online_display, scroll_indicator
+    );
 
     let paragraph = Paragraph::new(visible_lines)
         .block(

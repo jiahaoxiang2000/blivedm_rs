@@ -17,6 +17,7 @@ use futures::stream::StreamExt;
 use std::collections::VecDeque;
 use std::env;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -303,9 +304,15 @@ fn main() {
     // Create shared message buffer for TUI
     let message_buffer: Arc<Mutex<VecDeque<String>>> = Arc::new(Mutex::new(VecDeque::new()));
 
+    // Create shared online count for TUI title display
+    let online_count: Arc<AtomicU64> = Arc::new(AtomicU64::new(0));
+
     let context = EventContext::new(cookies.clone(), room_id.parse::<u64>().unwrap_or(0));
     let mut scheduler = Scheduler::new(context);
-    let terminal_handler = Arc::new(TerminalDisplayHandler::new(Arc::clone(&message_buffer)));
+    let terminal_handler = Arc::new(TerminalDisplayHandler::with_online_count(
+        Arc::clone(&message_buffer),
+        Arc::clone(&online_count),
+    ));
     scheduler.add_sequential_handler(terminal_handler);
 
     if let Some(server_url) = tts_server {
@@ -375,7 +382,11 @@ fn main() {
     });
 
     // Create TUI app
-    let tui_app = TuiApp::new(Arc::clone(&message_buffer), room_id.clone());
+    let tui_app = TuiApp::with_online_count(
+        Arc::clone(&message_buffer),
+        room_id.clone(),
+        Arc::clone(&online_count),
+    );
 
     let context_for_chat = EventContext::new(cookies.clone(), room_id.parse::<u64>().unwrap_or(0));
     let message_buffer_for_feedback = Arc::clone(&message_buffer);
