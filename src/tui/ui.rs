@@ -7,8 +7,9 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, Paragraph, Wrap},
 };
+use unicode_width::UnicodeWidthStr;
 
 /// Render the TUI
 pub fn render(f: &mut Frame, app: &TuiApp) {
@@ -24,48 +25,36 @@ pub fn render(f: &mut Frame, app: &TuiApp) {
     render_input_box(f, app, chunks[1]);
 }
 
-/// Render the message list
+/// Render the message list with text wrapping support
 fn render_message_list(f: &mut Frame, app: &TuiApp, area: Rect) {
     let messages = app.get_messages();
-
-    // Create list items with color coding
-    let items: Vec<ListItem> = messages
-        .iter()
-        .map(|msg| {
-            let (style, text) = if msg.starts_with("[Danmu]") {
-                (Style::default().fg(Color::Cyan), msg.as_str())
-            } else if msg.starts_with("[Gift]") {
-                (Style::default().fg(Color::Yellow), msg.as_str())
-            } else if msg.starts_with("[Raw]") {
-                (Style::default().fg(Color::Magenta), msg.as_str())
-            } else if msg.starts_with("[Unsupported") {
-                (Style::default().fg(Color::DarkGray), msg.as_str())
-            } else if msg.starts_with("[System]") {
-                (Style::default().fg(Color::Green), msg.as_str())
-            } else {
-                (Style::default(), msg.as_str())
-            };
-
-            ListItem::new(Line::from(Span::styled(text, style)))
-        })
-        .collect();
-
-    // Calculate scroll state
-    let total_messages = messages.len();
+    let inner_width = area.width.saturating_sub(2) as usize; // Account for borders
     let visible_height = area.height.saturating_sub(2) as usize; // Account for borders
 
-    // Determine which messages to show based on scroll offset
-    let start_index = if app.auto_scroll {
-        // Auto-scroll mode: show latest messages
-        total_messages.saturating_sub(visible_height)
+    // Create wrapped lines with styles
+    let mut all_lines: Vec<Line> = Vec::new();
+
+    for msg in messages.iter() {
+        let style = get_message_style(msg);
+        let wrapped = wrap_text(msg, inner_width);
+        for line_text in wrapped {
+            all_lines.push(Line::from(Span::styled(line_text, style)));
+        }
+    }
+
+    // Calculate which lines to show based on scroll
+    let total_lines = all_lines.len();
+    let start_line = if app.auto_scroll {
+        // Auto-scroll mode: show latest lines
+        total_lines.saturating_sub(visible_height)
     } else {
         // Manual scroll mode: show based on offset
-        total_messages.saturating_sub(visible_height + app.scroll_offset)
+        total_lines.saturating_sub(visible_height + app.scroll_offset)
     };
 
-    let visible_items: Vec<ListItem> = items
+    let visible_lines: Vec<Line> = all_lines
         .into_iter()
-        .skip(start_index)
+        .skip(start_line)
         .take(visible_height)
         .collect();
 
@@ -73,19 +62,72 @@ fn render_message_list(f: &mut Frame, app: &TuiApp, area: Rect) {
     let scroll_indicator = if app.auto_scroll {
         "🔽 Auto-scroll"
     } else {
-        "⏸ Paused - Press ↓ to bottom for auto-scroll"
+        "⏸ Paused - Press ↑↓ to scroll"
     };
 
     let title = format!(" Room {} | {} ", app.room_id, scroll_indicator);
 
-    let list = List::new(visible_items).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(title)
-            .border_style(Style::default().fg(Color::White)),
-    );
+    let paragraph = Paragraph::new(visible_lines)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(title)
+                .border_style(Style::default().fg(Color::White)),
+        )
+        .wrap(Wrap { trim: false });
 
-    f.render_widget(list, area);
+    f.render_widget(paragraph, area);
+}
+
+/// Get the style for a message based on its prefix
+fn get_message_style(msg: &str) -> Style {
+    if msg.starts_with("[Danmu]") {
+        Style::default().fg(Color::Cyan)
+    } else if msg.starts_with("[Gift]") {
+        Style::default().fg(Color::Yellow)
+    } else if msg.starts_with("[Raw]") {
+        Style::default().fg(Color::Magenta)
+    } else if msg.starts_with("[Unsupported") {
+        Style::default().fg(Color::DarkGray)
+    } else if msg.starts_with("[System]") {
+        Style::default().fg(Color::Green)
+    } else {
+        Style::default()
+    }
+}
+
+/// Wrap text to fit within the specified width, respecting Unicode character widths
+fn wrap_text(text: &str, max_width: usize) -> Vec<String> {
+    if max_width == 0 {
+        return vec![text.to_string()];
+    }
+
+    let mut lines = Vec::new();
+    let mut current_line = String::new();
+    let mut current_width = 0;
+
+    for ch in text.chars() {
+        let char_width = unicode_width::UnicodeWidthChar::width(ch).unwrap_or(0);
+
+        if current_width + char_width > max_width && !current_line.is_empty() {
+            lines.push(current_line);
+            current_line = String::new();
+            current_width = 0;
+        }
+
+        current_line.push(ch);
+        current_width += char_width;
+    }
+
+    if !current_line.is_empty() {
+        lines.push(current_line);
+    }
+
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+
+    lines
 }
 
 /// Render the input box
@@ -105,7 +147,6 @@ fn render_input_box(f: &mut Frame, app: &TuiApp, area: Rect) {
 
     // Set cursor position
     // Calculate display width up to cursor position (handles multi-byte characters)
-    use unicode_width::UnicodeWidthStr;
     let text_before_cursor: String = app.input.chars().take(app.cursor_position).collect();
     let display_width = text_before_cursor.width();
 
