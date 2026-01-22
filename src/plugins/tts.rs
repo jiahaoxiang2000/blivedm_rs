@@ -501,14 +501,10 @@ impl TtsHandler {
                                     }
                                 }
 
-                                // Try to play audio - prefer streamed chunks, fallback to URL download
-                                let audio_data = if !audio_chunks.is_empty() {
-                                    // Use collected base64 chunks
-                                    let combined: Vec<u8> = audio_chunks.into_iter().flatten().collect();
-                                    info!("AliTTS: using {} bytes from streamed chunks", combined.len());
-                                    Some(combined)
-                                } else if let Some(url) = audio_url {
-                                    // Download audio from URL
+                                // Try to play audio - prefer URL download over streamed chunks
+                                // Streamed MP3 chunks cannot be simply concatenated due to headers/frames
+                                let audio_data = if let Some(url) = audio_url {
+                                    // Download complete audio from URL (preferred method)
                                     info!("AliTTS: downloading audio from URL");
                                     match client.get(&url).send().await {
                                         Ok(audio_response) => {
@@ -533,6 +529,13 @@ impl TtsHandler {
                                             None
                                         }
                                     }
+                                } else if !audio_chunks.is_empty() {
+                                    // Fallback: try to use collected base64 chunks
+                                    // Note: This may not work correctly for MP3 format due to concatenation issues
+                                    warn!("AliTTS: No URL provided, attempting to use streamed chunks (may have decoding issues)");
+                                    let combined: Vec<u8> = audio_chunks.into_iter().flatten().collect();
+                                    info!("AliTTS: using {} bytes from streamed chunks", combined.len());
+                                    Some(combined)
                                 } else {
                                     warn!("No audio data or URL received from AliTTS");
                                     None
