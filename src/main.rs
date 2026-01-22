@@ -77,6 +77,22 @@ struct Args {
     #[arg(long, value_name = "ARGS", allow_hyphen_values = true)]
     tts_args: Option<String>,
 
+    /// Alibaba DashScope API key for ali-tts (can also use DASHSCOPE_API_KEY env)
+    #[arg(long, value_name = "KEY")]
+    ali_api_key: Option<String>,
+
+    /// Alibaba TTS model (e.g., "qwen3-tts-flash")
+    #[arg(long, value_name = "MODEL")]
+    ali_model: Option<String>,
+
+    /// Alibaba TTS voice (e.g., "Cherry", "Chelsie")
+    #[arg(long, value_name = "VOICE")]
+    ali_voice: Option<String>,
+
+    /// Alibaba TTS language type (e.g., "Chinese", "English")
+    #[arg(long, value_name = "LANG")]
+    ali_language_type: Option<String>,
+
     /// Enable debug logging
     #[arg(long)]
     debug: bool,
@@ -171,6 +187,21 @@ fn main() {
         .tts_args
         .or_else(|| config.tts.as_ref().and_then(|t| t.args.clone()));
 
+    // Configure Alibaba TTS with precedence: CLI args > env vars > config file
+    let ali_api_key = args
+        .ali_api_key
+        .or_else(|| env::var("DASHSCOPE_API_KEY").ok())
+        .or_else(|| config.tts.as_ref().and_then(|t| t.ali_api_key.clone()));
+    let ali_model = args
+        .ali_model
+        .or_else(|| config.tts.as_ref().and_then(|t| t.ali_model.clone()));
+    let ali_voice = args
+        .ali_voice
+        .or_else(|| config.tts.as_ref().and_then(|t| t.ali_voice.clone()));
+    let ali_language_type = args
+        .ali_language_type
+        .or_else(|| config.tts.as_ref().and_then(|t| t.ali_language_type.clone()));
+
     // Configure auto reply with precedence: CLI args > config file
     let auto_reply_config = if let Some(config_auto_reply) = &config.auto_reply {
         // Use config file settings, but allow CLI flag to override enabled
@@ -218,6 +249,10 @@ fn main() {
             &tts_volume,
             &tts_command,
             &tts_args,
+            &ali_api_key,
+            &ali_model,
+            &ali_voice,
+            &ali_language_type,
             &effective_auto_reply,
             debug_enabled,
         );
@@ -315,7 +350,20 @@ fn main() {
     ));
     scheduler.add_sequential_handler(terminal_handler);
 
-    if let Some(server_url) = tts_server {
+    if let Some(api_key) = ali_api_key {
+        // Alibaba DashScope TTS configuration
+        let model = ali_model.unwrap_or_else(|| "qwen3-tts-flash".to_string());
+        let voice = ali_voice.unwrap_or_else(|| "Cherry".to_string());
+        let tts_handler = Arc::new(TtsHandler::new_ali_tts(
+            api_key,
+            model.clone(),
+            voice.clone(),
+            ali_language_type,
+            tts_volume,
+        ));
+        scheduler.add_sequential_handler(tts_handler);
+        println!("TTS configured with Alibaba DashScope (model: {}, voice: {})", model, voice);
+    } else if let Some(server_url) = tts_server {
         // REST API TTS configuration
         let tts_handler = Arc::new(TtsHandler::new_rest_api_with_volume(
             server_url,
@@ -337,7 +385,7 @@ fn main() {
         scheduler.add_sequential_handler(tts_handler);
         println!("TTS configured with local command");
     } else {
-        println!("No TTS configuration provided. Use --tts-server or --tts-command to enable TTS.");
+        println!("No TTS configuration provided. Use --ali-api-key, --tts-server, or --tts-command to enable TTS.");
     }
 
     // Add auto reply plugin if enabled

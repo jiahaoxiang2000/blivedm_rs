@@ -31,6 +31,11 @@ pub struct TtsConfig {
     pub volume: Option<f32>,
     pub command: Option<String>,
     pub args: Option<String>,
+    /// Alibaba DashScope TTS configuration
+    pub ali_api_key: Option<String>,
+    pub ali_model: Option<String>,
+    pub ali_voice: Option<String>,
+    pub ali_language_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,6 +170,10 @@ impl Config {
                 volume: None,
                 command: None,
                 args: None,
+                ali_api_key: None,
+                ali_model: None,
+                ali_voice: None,
+                ali_language_type: None,
             }),
             auto_reply: Some(AutoReplyConfig {
                 enabled: false,
@@ -193,6 +202,7 @@ impl Config {
     }
 
     /// Print the effective configuration (for debugging)
+    #[allow(clippy::too_many_arguments)]
     pub fn print_effective_config(
         cookies: &Option<String>,
         room_id: &str,
@@ -205,6 +215,10 @@ impl Config {
         tts_volume: &Option<f32>,
         tts_command: &Option<String>,
         tts_args: &Option<String>,
+        ali_api_key: &Option<String>,
+        ali_model: &Option<String>,
+        ali_voice: &Option<String>,
+        ali_language_type: &Option<String>,
         auto_reply: &Option<AutoReplyConfig>,
         debug: bool,
     ) {
@@ -220,7 +234,7 @@ impl Config {
             println!("  cookies: None (will auto-detect)");
         }
 
-        println!("TTS:");
+        println!("TTS (REST API):");
         println!("  server: {:?}", tts_server);
         println!("  voice: {:?}", tts_voice);
         println!("  backend: {:?}", tts_backend);
@@ -230,6 +244,19 @@ impl Config {
         println!("  volume: {:?}", tts_volume);
         println!("  command: {:?}", tts_command);
         println!("  args: {:?}", tts_args);
+
+        println!("TTS (Alibaba DashScope):");
+        if let Some(key) = ali_api_key {
+            println!(
+                "  api_key: {}...",
+                &key.chars().take(10).collect::<String>()
+            );
+        } else {
+            println!("  api_key: None");
+        }
+        println!("  model: {:?}", ali_model);
+        println!("  voice: {:?}", ali_voice);
+        println!("  language_type: {:?}", ali_language_type);
 
         println!("Auto Reply:");
         if let Some(auto_reply_config) = auto_reply {
